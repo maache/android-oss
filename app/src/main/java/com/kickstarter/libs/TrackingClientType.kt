@@ -1,6 +1,6 @@
 package com.kickstarter.libs
 
-import com.kickstarter.libs.utils.KoalaUtils
+import com.kickstarter.libs.utils.AnalyticEventsUtils.userProperties
 import com.kickstarter.libs.utils.MapUtils
 import com.kickstarter.models.User
 import org.json.JSONArray
@@ -37,6 +37,13 @@ abstract class TrackingClientType {
 
     abstract fun track(eventName: String, additionalProperties: Map<String, Any>)
     abstract fun identify(u: User)
+    abstract fun reset()
+
+    /**
+     * Will determine if a concrete TrackingClient
+     * is enabled to send data
+     */
+    abstract fun isEnabled(): Boolean
 
     fun track(eventName: String) {
         track(eventName, HashMap())
@@ -45,7 +52,7 @@ abstract class TrackingClientType {
     private fun genericProperties(): Map<String, Any> {
         val hashMap = hashMapOf<String, Any>()
         loggedInUser()?.let {
-            hashMap.putAll(KoalaUtils.userProperties(it))
+            hashMap.putAll(userProperties(it))
             hashMap["user_country"] = userCountry(it)
         }
         hashMap.putAll(sessionProperties(loggedInUser() != null))
@@ -64,11 +71,11 @@ abstract class TrackingClientType {
         properties.apply {
             this["app_build_number"] = buildNumber()
             this["app_release_version"] = versionName()
-            this["client_platform"] = "android"
-            this["client_type"] = "native"
+            this["platform"] = "android"
+            this["client"] = "native"
             this["current_variants"] = currentVariants() ?: ""
             this["device_distinct_id"] = deviceDistinctId()
-            this["device_format"] = deviceFormat()
+            this["device_type"] = deviceFormat()
             this["device_manufacturer"] = manufacturer()
             this["device_model"] = model()
             this["device_orientation"] = deviceOrientation()
@@ -80,6 +87,10 @@ abstract class TrackingClientType {
             this["os_version"] = OSVersion()
             this["user_agent"] = userAgent() ?: ""
             this["user_is_logged_in"] = userIsLoggedIn
+            // - Add the optimizely experiments as part of the session properties
+            optimizely()?.let {
+                this.putAll(it.getTrackingProperties())
+            }
             this["wifi_connection"] = wifiConnection()
         }
 

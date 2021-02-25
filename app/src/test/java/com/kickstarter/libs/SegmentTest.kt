@@ -484,13 +484,23 @@ class SegmentTest : KSRobolectricTestCase() {
                 override fun enabledFeatures(user: User?): List<String> {
                     return listOf("optimizely_feature")
                 }
+
+                override fun getTrackingProperties(): Map<String, JSONArray> {
+                    return getOptimizelySession()
+                }
             })
+
+    private fun getOptimizelySession(): Map<String, JSONArray> {
+        val experiment1 = JSONObject(mapOf("suggested_no_reward_amount" to "variation_3"))
+        val jsonArray = JSONArray().put(experiment1)
+        return mapOf("variants_optimizely" to jsonArray)
+    }
 
     private fun assertCheckoutProperties() {
         val expectedProperties = this.propertiesTest.value
         assertEquals(30.0, expectedProperties["checkout_amount"])
         assertEquals("CREDIT_CARD", expectedProperties["checkout_payment_type"])
-        assertEquals(3000L, expectedProperties["checkout_revenue_in_usd_cents"])
+        assertEquals(50.0, expectedProperties["checkout_amount_total_usd"])
         assertEquals(20.0, expectedProperties["checkout_shipping_amount"])
     }
 
@@ -499,6 +509,7 @@ class SegmentTest : KSRobolectricTestCase() {
         assertEquals(DateTime.parse("2018-11-02T18:42:05Z").millis / 1000, expectedProperties["context_timestamp"])
     }
 
+    //TODO: will be deleted on https://kickstarter.atlassian.net/browse/EP-187
     private fun assertOptimizelyProperties() {
         val expectedProperties = this.propertiesTest.value
         assertEquals(OptimizelyEnvironment.DEVELOPMENT.sdkKey, expectedProperties["optimizely_api_key"])
@@ -512,15 +523,15 @@ class SegmentTest : KSRobolectricTestCase() {
 
     private fun assertPledgeProperties() {
         val expectedProperties = this.propertiesTest.value
-        assertEquals(DateTime.parse("2019-03-26T19:26:09Z").millis / 1000, expectedProperties["pledge_backer_reward_estimated_delivery_on"])
-        assertEquals(false, expectedProperties["pledge_backer_reward_has_items"])
-        assertEquals(2L, expectedProperties["pledge_backer_reward_id"])
-        assertEquals(false, expectedProperties["pledge_backer_reward_is_limited_time"])
-        assertEquals(false, expectedProperties["pledge_backer_reward_is_limited_quantity"])
-        assertEquals(10.0, expectedProperties["pledge_backer_reward_minimum"])
-        assertEquals(true, expectedProperties["pledge_backer_reward_shipping_enabled"])
-        assertEquals("unrestricted", expectedProperties["pledge_backer_reward_shipping_preference"])
-        assertEquals("Digital Bundle", expectedProperties["pledge_backer_reward_title"])
+        assertEquals(DateTime.parse("2019-03-26T19:26:09Z").millis / 1000, expectedProperties["checkout_reward_estimated_delivery_on"])
+        assertEquals(false, expectedProperties["checkout_reward_has_items"])
+        assertEquals(2L, expectedProperties["checkout_reward_id"])
+        assertEquals(false, expectedProperties["checkout_reward_is_limited_time"])
+        assertEquals(false, expectedProperties["checkout_reward_is_limited_quantity"])
+        assertEquals(10.0, expectedProperties["checkout_reward_minimum"])
+        assertEquals(true, expectedProperties["checkout_reward_shipping_enabled"])
+        assertEquals("unrestricted", expectedProperties["checkout_reward_shipping_preference"])
+        assertEquals("Digital Bundle", expectedProperties["checkout_reward_title"])
     }
 
     private fun assertProjectProperties(project: Project) {
@@ -533,7 +544,7 @@ class SegmentTest : KSRobolectricTestCase() {
         assertEquals(3L, expectedProperties["project_creator_uid"])
         assertEquals("USD", expectedProperties["project_currency"])
         assertEquals(50.0, expectedProperties["project_current_pledge_amount"])
-        assertEquals(50.0, expectedProperties["project_current_pledge_amount_usd"])
+        assertEquals(50.0, expectedProperties["project_current_amount_pledged_usd"])
         assertEquals(project.deadline()?.millis?.let { it / 1000 }, expectedProperties["project_deadline"])
         assertEquals(60 * 60 * 24 * 20, expectedProperties["project_duration"])
         assertEquals(100.0, expectedProperties["project_goal"])
@@ -559,11 +570,11 @@ class SegmentTest : KSRobolectricTestCase() {
         val expectedProperties = this.propertiesTest.value
         assertEquals(9999, expectedProperties["session_app_build_number"])
         assertEquals("9.9.9", expectedProperties["session_app_release_version"])
-        assertEquals("android", expectedProperties["session_client_platform"])
-        assertEquals("native", expectedProperties["session_client_type"])
+        assertEquals("android", expectedProperties["session_platform"])
+        assertEquals("native", expectedProperties["session_client"])
         assertEquals(JSONArray().put("android_example_experiment[control]"), expectedProperties["session_current_variants"])
         assertEquals("uuid", expectedProperties["session_device_distinct_id"])
-        assertEquals("phone", expectedProperties["session_device_format"])
+        assertEquals("phone", expectedProperties["session_device_type"])
         assertEquals("Google", expectedProperties["session_device_manufacturer"])
         assertEquals("Pixel 3", expectedProperties["session_device_model"])
         assertEquals("Portrait", expectedProperties["session_device_orientation"])
@@ -576,6 +587,7 @@ class SegmentTest : KSRobolectricTestCase() {
         assertEquals("agent", expectedProperties["session_user_agent"])
         assertEquals(user != null, expectedProperties["session_user_is_logged_in"])
         assertEquals(false, expectedProperties["session_wifi_connection"])
+        assertEquals(getOptimizelySession()["variants_optimizely"].toString(), expectedProperties["session_variants_optimizely"].toString())
     }
 
     private fun mockCurrentConfig() = MockCurrentConfig().apply {

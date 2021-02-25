@@ -5,9 +5,9 @@ import androidx.annotation.NonNull
 import com.kickstarter.libs.Environment
 import com.kickstarter.libs.FragmentViewModel
 import com.kickstarter.libs.rx.transformers.Transformers.takeWhen
-import com.kickstarter.libs.utils.BackingUtils
 import com.kickstarter.libs.utils.ObjectUtils
 import com.kickstarter.libs.utils.RewardUtils
+import com.kickstarter.libs.utils.extensions.isBacked
 import com.kickstarter.mock.factories.RewardFactory
 import com.kickstarter.models.Backing
 import com.kickstarter.models.Project
@@ -72,6 +72,10 @@ class RewardsFragmentViewModel {
 
         init {
 
+            projectData
+                    .compose(bindToLifecycle())
+                    .subscribe{ this.lake.trackRewardsCarouselViewed(it)}
+
             this.projectDataInput
                     .map { filterOutNotStartedRewards(it) }
                     .compose(bindToLifecycle())
@@ -79,7 +83,7 @@ class RewardsFragmentViewModel {
 
             val project = this.projectData
                     .map { it.project() }
-            
+
             project
                     .filter { it.isBacking }
                     .map { indexOfBackedReward(it) }
@@ -205,7 +209,7 @@ class RewardsFragmentViewModel {
         private fun indexOfBackedReward(project: Project): Int {
             project.rewards()?.run {
                 for ((index, reward) in withIndex()) {
-                    if (BackingUtils.isBacked(project, reward)) {
+                    if (project.backing()?.isBacked(reward) == true) {
                         return index
                     }
                 }
