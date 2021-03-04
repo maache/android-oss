@@ -48,7 +48,12 @@ object AnalyticEventsUtils {
             put("ref_tag", DiscoveryParamsUtils.refTag(params).tag())
             params.term()?.let { put("search_term", it) }
             put("social", BooleanUtils.isIntTrue(params.social()))
-            put("sort", params.sort()?.let { it.toString() } ?: "")
+            put("sort", params.sort()?.let {
+                when (it) {
+                    DiscoveryParams.Sort.ENDING_SOON -> "ending_soon"
+                    else -> it.toString()
+                }
+            } ?: "")
             params.tagId()?.let { put("tag", it) }
             put("watched", BooleanUtils.isIntTrue(params.starred()))
 
@@ -97,6 +102,7 @@ object AnalyticEventsUtils {
     fun userProperties(user: User, prefix: String = "user_"): Map<String, Any> {
         val properties = HashMap<String, Any>()
         properties["uid"] = user.id()
+        properties["is_admin"] = user.isAdmin ?: false
 
         return MapUtils.prefixKeys(properties, prefix)
     }
@@ -179,6 +185,11 @@ object AnalyticEventsUtils {
             put("user_is_project_creator", ProjectUtils.userIsCreator(project, loggedInUser))
             put("user_is_backer", project.isBacking)
             put("user_has_watched", project.isStarred)
+
+            val hasAddOns = project.rewards()?.find {
+                it.hasAddons()
+            }
+            put("has_add_ons", hasAddOns?.hasAddons() ?: false)
         }
 
         return MapUtils.prefixKeys(properties, prefix)

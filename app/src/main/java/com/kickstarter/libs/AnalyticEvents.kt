@@ -2,24 +2,42 @@ package com.kickstarter.libs
 
 import com.kickstarter.libs.KoalaContext.*
 import com.kickstarter.libs.KoalaEvent.ProjectAction
+import com.kickstarter.libs.utils.BooleanUtils
+import com.kickstarter.libs.utils.ExperimentData
+import com.kickstarter.libs.utils.AnalyticEventsUtils
 import com.kickstarter.libs.utils.EventContextValues.CtaContextName.ADD_ONS_CONTINUE
 import com.kickstarter.libs.utils.EventContextValues.CtaContextName.PLEDGE_INITIATE
 import com.kickstarter.libs.utils.EventContextValues.CtaContextName.PLEDGE_SUBMIT
 import com.kickstarter.libs.utils.EventContextValues.CtaContextName.REWARD_CONTINUE
-import com.kickstarter.libs.utils.AnalyticEventsUtils
+import com.kickstarter.libs.utils.EventContextValues.CtaContextName.DISCOVER_FILTER
+import com.kickstarter.libs.utils.EventContextValues.CtaContextName.DISCOVER_SORT
+import com.kickstarter.libs.utils.EventContextValues.CtaContextName.WATCH_PROJECT
+import com.kickstarter.libs.utils.EventContextValues.ContextTypeName.WATCH
+import com.kickstarter.libs.utils.EventContextValues.ContextTypeName.UNWATCH
+import com.kickstarter.libs.utils.EventContextValues.ContextTypeName.CREDIT_CARD
 import com.kickstarter.libs.utils.EventContextValues.PageViewedContextName.ADD_ONS
 import com.kickstarter.libs.utils.EventContextValues.PageViewedContextName.CHECKOUT
 import com.kickstarter.libs.utils.EventContextValues.PageViewedContextName.REWARDS
 import com.kickstarter.libs.utils.EventContextValues.PageViewedContextName.PROJECT
 import com.kickstarter.libs.utils.EventContextValues.PageViewedContextName.THANKS
+import com.kickstarter.libs.utils.EventContextValues.CtaContextName.SEARCH
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.PWL
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.SUBCATEGORY_NAME
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.CATEGORY_NAME
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.SOCIAL
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.RECOMMENDED
+import com.kickstarter.libs.utils.EventContextValues.DiscoveryContextType.WATCHED
 import com.kickstarter.libs.utils.EventName.CTA_CLICKED
 import com.kickstarter.libs.utils.EventName.PAGE_VIEWED
 import com.kickstarter.libs.utils.ContextPropertyKeyName.CONTEXT_CTA
 import com.kickstarter.libs.utils.ContextPropertyKeyName.CONTEXT_TYPE
 import com.kickstarter.libs.utils.ContextPropertyKeyName.CONTEXT_PAGE
 import com.kickstarter.libs.utils.ContextPropertyKeyName.CONTEXT_SECTION
-import com.kickstarter.libs.utils.EventContextValues
-import com.kickstarter.libs.utils.ExperimentData
+import com.kickstarter.libs.utils.ContextPropertyKeyName.CONTEXT_LOCATION
+import com.kickstarter.libs.utils.EventContextValues.CtaContextName.DISCOVER
+import com.kickstarter.libs.utils.EventContextValues.LocationContextName.DISCOVER_ADVANCED
+import com.kickstarter.libs.utils.EventContextValues.LocationContextName.DISCOVER_OVERLAY
+import com.kickstarter.libs.utils.EventContextValues.LocationContextName.GLOBAL_NAV
 import com.kickstarter.models.Activity
 import com.kickstarter.models.Project
 import com.kickstarter.models.User
@@ -27,6 +45,7 @@ import com.kickstarter.services.DiscoveryParams
 import com.kickstarter.services.apiresponses.PushNotificationEnvelope
 import com.kickstarter.ui.data.*
 import com.kickstarter.ui.data.Mailbox
+import java.util.Locale
 import kotlin.collections.HashMap
 
 class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
@@ -191,6 +210,16 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
             properties["page_count"] = pageCount
             client.track(KoalaEvent.ACTIVITY_LOAD_MORE, properties)
         }
+    }
+
+    /**
+     * Tracks a discover project clicks on the activity screen.
+     */
+    fun trackDiscoverProjectCTAClicked(){
+        val props = hashMapOf<String, Any>()
+        props[CONTEXT_CTA.contextName] = DISCOVER.contextName
+        props[CONTEXT_LOCATION.contextName]  = GLOBAL_NAV.contextName
+        client.track(CTA_CLICKED.eventName, props)
     }
 
     // SEARCH
@@ -584,9 +613,56 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
         client.track(EXPLORE_SORT_CLICKED, props)
     }
 
+    /**
+     * Sends data to the client when the any of the discover sort tabs are clicked.
+     *
+     * @param discoveryParams: The discovery parameters.
+     */
+    fun trackDiscoverSortCTA(discoveryParams: DiscoveryParams) {
+        val props: HashMap<String, Any> = hashMapOf(CONTEXT_CTA.contextName to DISCOVER_SORT.contextName)
+        props[CONTEXT_LOCATION.contextName]  = DISCOVER_ADVANCED.contextName
+        props.putAll(AnalyticEventsUtils.discoveryParamsProperties(discoveryParams))
+        client.track(CTA_CLICKED.eventName, props)
+    }
+
     fun trackFilterClicked(discoveryParams: DiscoveryParams) {
         val props = AnalyticEventsUtils.discoveryParamsProperties(discoveryParams)
         client.track(FILTER_CLICKED, props)
+    }
+
+
+    /**
+     * Sends data to the client when items in the discovery sort is selected.
+     *
+     * @param discoveryParams: The discovery parameters.
+     */
+    fun trackDiscoveryPageViewed(discoveryParams: DiscoveryParams) {
+        val props = AnalyticEventsUtils.discoveryParamsProperties(discoveryParams).toMutableMap()
+        props[DISCOVER_SORT.contextName] = discoveryParams.sort()?.name?.toLowerCase(Locale.ROOT) ?: ""
+        props[CONTEXT_PAGE.contextName] = DISCOVER.contextName
+        client.track(PAGE_VIEWED.eventName, props)
+    }
+
+    /**
+     * Sends data to the client when items in the discovery overflow menu are tapped.
+     *
+     * @param discoveryParams: The discovery parameters.
+     */
+    fun trackDiscoverFilterCTA(discoveryParams: DiscoveryParams) {
+        val props: HashMap<String, Any> = hashMapOf(CONTEXT_CTA.contextName to DISCOVER_FILTER.contextName)
+        props[CONTEXT_LOCATION.contextName] = DISCOVER_OVERLAY.contextName
+        props[CONTEXT_TYPE.contextName] = when {
+            BooleanUtils.isTrue(discoveryParams.staffPicks()) -> PWL.contextName
+            BooleanUtils.isTrue(discoveryParams.recommended()) -> RECOMMENDED.contextName
+            BooleanUtils.isIntTrue(discoveryParams.starred()) -> WATCHED.contextName
+            BooleanUtils.isIntTrue(discoveryParams.social()) -> SOCIAL.contextName
+            BooleanUtils.isTrue(discoveryParams.category()?.isRoot) -> CATEGORY_NAME.contextName
+            discoveryParams.category() != null -> SUBCATEGORY_NAME.contextName
+            else -> ""
+        }
+        props.putAll(AnalyticEventsUtils.discoveryParamsProperties(discoveryParams))
+
+        client.track(CTA_CLICKED.eventName, props)
     }
 
     fun trackHamburgerMenuClicked(discoveryParams: DiscoveryParams) {
@@ -619,6 +695,18 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
 
     fun trackSearchButtonClicked() {
         client.track(SEARCH_BUTTON_CLICKED)
+    }
+
+    /**
+     * Sends data associated with the search CTA click event to the client.
+     *
+     * @param discoveryParams: The discovery data.
+     */
+    fun trackSearchCTAButtonClicked(discoveryParams: DiscoveryParams) {
+        val props = AnalyticEventsUtils.discoveryParamsProperties(discoveryParams).toMutableMap()
+        props[CONTEXT_CTA.contextName] = SEARCH.contextName
+        props[CONTEXT_LOCATION.contextName]  = GLOBAL_NAV.contextName
+        client.track(CTA_CLICKED.eventName, props)
     }
 
     fun trackSearchPageViewed(discoveryParams: DiscoveryParams) {
@@ -663,7 +751,7 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
      */
     fun trackPledgeSubmitCTA(checkoutData: CheckoutData, pledgeData: PledgeData) {
         val props: HashMap<String, Any> = hashMapOf(CONTEXT_CTA.contextName to PLEDGE_SUBMIT.contextName)
-        props[CONTEXT_TYPE.contextName] = "credit_card"
+        props[CONTEXT_TYPE.contextName] = CREDIT_CARD.contextName
         props.putAll(AnalyticEventsUtils.checkoutDataProperties(checkoutData, pledgeData, client.loggedInUser()))
         client.track(CTA_CLICKED.eventName, props)
     }
@@ -747,6 +835,18 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
         val props: HashMap<String, Any> = hashMapOf(CONTEXT_PAGE.contextName to ADD_ONS.contextName)
         props.putAll(AnalyticEventsUtils.pledgeDataProperties(pledgeData, client.loggedInUser()))
         client.track(PAGE_VIEWED.eventName, props)
+    }
+
+    /**
+     * Sends data to the client when the heart icon is tapped on a project page.
+     *
+     * @param project: The watched or unwatched project.
+     */
+    fun trackWatchProjectCTA(project: Project) {
+        val props: HashMap<String, Any> = hashMapOf(CONTEXT_CTA.contextName to WATCH_PROJECT.contextName)
+        props[CONTEXT_TYPE.contextName] = if (project.isStarred) WATCH.contextName else UNWATCH.contextName
+        props.putAll(AnalyticEventsUtils.projectProperties(project, client.loggedInUser()))
+        client.track(CTA_CLICKED.eventName, props)
     }
 
     fun trackAddOnsContinueButtonClicked(pledgeData: PledgeData) {
