@@ -46,7 +46,7 @@
         android:backgroundTint="@color/white_enabled_gray_disabled"
         android:contentDescription="@string/Decrease_pledge"
         android:src="@drawable/ic_remove"
-        android:tint="@color/green_enabled_dark_grey_disabled"
+        app:tint="@color/green_enabled_dark_grey_disabled"
         app:layout_constraintBottom_toBottomOf="@id/pledge_amount_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/pledge_minimum" />
@@ -59,7 +59,7 @@
         android:backgroundTint="@color/white_enabled_gray_disabled"
         android:contentDescription="@string/Increase_pledge"
         android:src="@drawable/ic_add"
-        android:tint="@color/green_enabled_dark_grey_disabled"
+        app:tint="@color/green_enabled_dark_grey_disabled"
         app:layout_constraintBottom_toBottomOf="@id/decrease_pledge"
         app:layout_constraintStart_toEndOf="@id/decrease_pledge"
         app:layout_constraintTop_toTopOf="@id/decrease_pledge" />
@@ -87,7 +87,7 @@
             android:layout_height="@dimen/grid_3"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_add"
-            app:tint="@color/ksr_dark_grey_400" />
+            app:tint="@color/kds_support_400" />
 
         <TextView
             android:id="@+id/additional_pledge_amount"
@@ -150,7 +150,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/grid_1"
         android:gravity="end"
-        android:textColor="@color/ksr_red_400"
+        android:textColor="@color/kds_alert"
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

@@ -1,5 +1,6 @@
 package com.kickstarter.viewmodels;
 
+import android.content.SharedPreferences;
 import android.util.Pair;
 
 import com.kickstarter.libs.ActivityViewModel;
@@ -7,10 +8,11 @@ import com.kickstarter.libs.ApiPaginator;
 import com.kickstarter.libs.CurrentUserType;
 import com.kickstarter.libs.Either;
 import com.kickstarter.libs.Environment;
-import com.kickstarter.libs.KoalaContext;
 import com.kickstarter.libs.utils.BooleanUtils;
+import com.kickstarter.libs.utils.EventContextValues;
 import com.kickstarter.libs.utils.ObjectUtils;
-import com.kickstarter.libs.utils.StringUtils;
+import com.kickstarter.libs.utils.extensions.ProjectDataExtKt;
+import com.kickstarter.libs.utils.extensions.StringExt;
 import com.kickstarter.models.Comment;
 import com.kickstarter.models.Project;
 import com.kickstarter.models.Update;
@@ -21,7 +23,9 @@ import com.kickstarter.services.apiresponses.ErrorEnvelope;
 import com.kickstarter.ui.IntentKey;
 import com.kickstarter.ui.activities.CommentsActivity;
 import com.kickstarter.ui.adapters.data.CommentsData;
+import com.kickstarter.ui.data.ProjectData;
 
+import java.net.CookieManager;
 import java.util.List;
 
 import androidx.annotation.NonNull;
@@ -93,13 +97,17 @@ public interface CommentsViewModel {
 
   final class ViewModel extends ActivityViewModel<CommentsActivity> implements Inputs, Outputs {
     private final ApiClientType client;
+    private final CookieManager cookieManager;
     private final CurrentUserType currentUser;
+    private final SharedPreferences sharedPreferences;
 
     public ViewModel(final @NonNull Environment environment) {
       super(environment);
 
       this.client = environment.apiClient();
+      this.cookieManager = environment.cookieManager();
       this.currentUser = environment.currentUser();
+      this.sharedPreferences = environment.sharedPreferences();
 
       final Observable<User> currentUser = Observable.merge(
         this.currentUser.observable(),
@@ -115,6 +123,18 @@ public interface CommentsViewModel {
             : new Either.Right<Project, Update>(i.getParcelableExtra(IntentKey.UPDATE));
         })
         .filter(ObjectUtils::isNotNull);
+
+      final Observable<ProjectData> projectData = intent()
+              .map(i -> i.getParcelableExtra(IntentKey.PROJECT_DATA))
+              .ofType(ProjectData.class)
+              .take(1);
+
+      projectData
+        .map(it -> ProjectDataExtKt.storeCurrentCookieRefTag(it, this.cookieManager, this.sharedPreferences))
+        .compose(bindToLifecycle())
+        .subscribe(
+          projectAndData -> this.lake.trackProjectScreenViewed(projectAndData, EventContextValues.ProjectContextSectionName.COMMENTS.getContextName())
+        );
 
       final Observable<Project> initialProject = projectOrUpdate
         .flatMap(pOrU ->
@@ -134,7 +154,7 @@ public interface CommentsViewModel {
         .share();
 
       final Observable<Boolean> commentHasBody = this.commentBodyChanged
-        .map(StringUtils::isPresent);
+        .map(it -> ObjectUtils.isNull(it) ? false : StringExt.isPresent(it));
 
       final Observable<Notification<Comment>> commentNotification = projectOrUpdate
         .compose(combineLatestPair(this.commentBodyChanged))
@@ -266,56 +286,6 @@ public interface CommentsViewModel {
         .subscribe(__ -> this.refresh.onNext(null));
 
       final Observable<Update> update = projectOrUpdate.map(Either::right);
-
-      // TODO: add a pageCount to RecyclerViewPaginator to track loading newer comments.
-      Observable.combineLatest(project, update, Pair::create)
-        .compose(takeWhen(this.nextPage))
-        .compose(bindToLifecycle())
-        .subscribe(pu ->
-          this.koala.trackLoadedOlderComments(
-            pu.first, pu.second, pu.second == null ? KoalaContext.Comments.PROJECT : KoalaContext.Comments.UPDATE
-          )
-        );
-
-      Observable.combineLatest(project, update, Pair::create)
-        .take(1)
-        .compose(bindToLifecycle())
-        .subscribe(pu ->
-          this.koala.trackViewedComments(
-            pu.first, pu.second, pu.second == null ? KoalaContext.Comments.PROJECT : KoalaContext.Comments.UPDATE
-          )
-        );
-
-      Observable.combineLatest(project, update, Pair::create)
-        .compose(takeWhen(postedComment))
-        .compose(bindToLifecycle())
-        .subscribe(pu ->
-          this.koala.trackPostedComment(
-            pu.first,
-            pu.second,
-            pu.second == null ? KoalaContext.CommentDialog.PROJECT_COMMENTS : KoalaContext.CommentDialog.UPDATE_COMMENTS
-          )
-        );
-
-      projectOrUpdate
-        .filter(Either::isLeft)
-        .map(Either::left)
-        .compose(takeWhen(this.nextPage))
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackLoadedOlderProjectComments);
-
-      projectOrUpdate
-        .filter(Either::isLeft)
-        .map(Either::left)
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackProjectCommentsView);
-
-      projectOrUpdate
-        .filter(Either::isLeft)
-        .map(Either::left)
-        .compose(takeWhen(postedComment))
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackProjectCommentCreate);
     }
 
     private @NonNull Observable<Comment> postComment(final @NonNull Either<Project, Update> projectOrUpdate, final @NonNull String body) {

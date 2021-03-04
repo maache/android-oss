@@ -1,14 +1,11 @@
 package com.kickstarter.viewmodels;
 
 import com.kickstarter.libs.ActivityViewModel;
-import com.kickstarter.libs.Config;
 import com.kickstarter.libs.CurrentConfigType;
 import com.kickstarter.libs.CurrentUserType;
 import com.kickstarter.libs.Environment;
 import com.kickstarter.libs.rx.transformers.Transformers;
-import com.kickstarter.libs.utils.LoginHelper;
-import com.kickstarter.libs.utils.StringUtils;
-import com.kickstarter.models.User;
+import com.kickstarter.libs.utils.extensions.StringExt;
 import com.kickstarter.services.ApiClientType;
 import com.kickstarter.services.apiresponses.AccessTokenEnvelope;
 import com.kickstarter.services.apiresponses.ErrorEnvelope;
@@ -16,12 +13,10 @@ import com.kickstarter.ui.activities.SignupActivity;
 
 import androidx.annotation.NonNull;
 
-import android.util.Pair;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
 import rx.subjects.PublishSubject;
 
-import static com.kickstarter.libs.rx.transformers.Transformers.combineLatestPair;
 import static com.kickstarter.libs.rx.transformers.Transformers.takeWhen;
 
 public interface SignupViewModel {
@@ -58,9 +53,6 @@ public interface SignupViewModel {
 
     /** Finish the activity with a successful result. */
     Observable<Void> signupSuccess();
-
-    /** Start the Interstitial screen. */
-    Observable<Void> showInterstitialFragment();
   }
 
   final class ViewModel extends ActivityViewModel<SignupActivity> implements Inputs, Outputs {
@@ -91,12 +83,9 @@ public interface SignupViewModel {
       signupData
               .compose(takeWhen(this.signupClick))
               .switchMap(this::submit)
-              .compose(combineLatestPair(this.currentConfig.observable()))
-              .map(it -> it)
-              .map(this::unwrapData)
               .distinctUntilChanged()
               .compose(bindToLifecycle())
-              .subscribe(this::continueFlow);
+              .subscribe(this::success);
 
       this.currentConfig.observable()
               .take(1)
@@ -104,38 +93,13 @@ public interface SignupViewModel {
               .compose(bindToLifecycle())
               .subscribe(this.sendNewslettersIsChecked::onNext);
 
-      this.signupError
-              .compose(bindToLifecycle())
-              .subscribe(__ -> this.koala.trackRegisterError());
-
       this.errorString = this.signupError
               .takeUntil(this.signupSuccess)
               .map(ErrorEnvelope::errorMessage);
 
-      this.sendNewslettersClick
-              .compose(bindToLifecycle())
-              .subscribe(this.koala::trackSignupNewsletterToggle);
-
-      this.signupSuccess
-              .compose(bindToLifecycle())
-              .subscribe(__ -> {
-                this.koala.trackLoginSuccess();
-                this.koala.trackRegisterSuccess();
-              });
-
-      this.koala.trackRegisterFormView();
-
       this.signupClick
               .compose(bindToLifecycle())
               .subscribe(__ -> this.lake.trackSignUpSubmitButtonClicked());
-    }
-
-    private Pair<Boolean, AccessTokenEnvelope> unwrapData(@NonNull final Pair<AccessTokenEnvelope, Config> accessTokenEnvelopeConfig) {
-      final AccessTokenEnvelope accessToken = accessTokenEnvelopeConfig.first;
-      final User user = accessToken.user();
-      final Config config = accessTokenEnvelopeConfig.second;
-      final Boolean isValidated = LoginHelper.INSTANCE.hasCurrentUserVerifiedEmail(user, config);
-      return new Pair(isValidated, accessToken);
     }
 
     private Observable<AccessTokenEnvelope> submit(final @NonNull SignupData data) {
@@ -144,18 +108,6 @@ public interface SignupViewModel {
               .compose(Transformers.neverError())
               .doOnSubscribe(() -> this.formSubmitting.onNext(true))
               .doAfterTerminate(() -> this.formSubmitting.onNext(false));
-    }
-
-    private void continueFlow(final @NonNull Pair<Boolean, AccessTokenEnvelope> validatedEnvelopInfo) {
-      final Boolean isValidated = validatedEnvelopInfo.first;
-      final AccessTokenEnvelope envelope = validatedEnvelopInfo.second;
-
-      if (isValidated) {
-        this.success(envelope);
-      } else {
-        this.currentUser.login(envelope.user(), envelope.accessToken());
-        this.showInterstitial.onNext(null);
-      }
     }
 
     private void success(final @NonNull AccessTokenEnvelope envelope) {
@@ -213,9 +165,6 @@ public interface SignupViewModel {
     @Override public @NonNull PublishSubject<Void> signupSuccess() {
       return this.signupSuccess;
     }
-    @Override public @NonNull Observable<Void> showInterstitialFragment() {
-      return this.showInterstitial;
-    }
 
     final static class SignupData {
       final @NonNull String email;
@@ -232,7 +181,7 @@ public interface SignupViewModel {
       }
 
       boolean isValid() {
-        return this.name.length() > 0 && StringUtils.isEmail(this.email) && this.password.length() >= 6;
+        return this.name.length() > 0 && StringExt.isEmail(this.email) && this.password.length() >= 6;
       }
     }
   }

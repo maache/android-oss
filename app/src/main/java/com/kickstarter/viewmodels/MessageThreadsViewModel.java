@@ -189,7 +189,7 @@ public interface MessageThreadsViewModel {
         .subscribe(this.hasNoUnreadMessages);
 
       unreadMessagesCount
-        .map(count -> intValueOrZero(count) > 0 ? R.color.accent : R.color.ksr_dark_grey_400)
+        .map(count -> intValueOrZero(count) > 0 ? R.color.accent : R.color.kds_support_400)
         .subscribe(this.unreadCountTextViewColorInt);
 
       unreadMessagesCount
@@ -229,7 +229,6 @@ public interface MessageThreadsViewModel {
       final Project project = projectMailboxAndRedTag.first.first;
       final RefTag refTag = projectMailboxAndRedTag.second.first;
       final KoalaContext.Mailbox context = projectMailboxAndRedTag.second.second;
-      this.koala.trackViewedMailbox(mailbox, project, refTag, context);
     }
 
     private int getStringResForMailbox(final @NonNull Mailbox mailbox) {

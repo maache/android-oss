@@ -5,6 +5,7 @@ import com.kickstarter.mock.factories.ConfigFactory;
 import com.kickstarter.models.Location;
 import com.kickstarter.models.User;
 
+import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -14,6 +15,7 @@ import java.util.Map;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import rx.Observable;
+import rx.subjects.BehaviorSubject;
 import rx.subjects.PublishSubject;
 
 public final class MockTrackingClient extends TrackingClientType {
@@ -26,8 +28,31 @@ public final class MockTrackingClient extends TrackingClientType {
   public MockTrackingClient(final @NonNull CurrentUserType currentUser, final @NonNull CurrentConfigType currentConfig, final Type type, final @NonNull ExperimentsClientType optimizely) {
     this.type = type;
     this.optimizely = optimizely;
-    currentUser.observable().subscribe(u -> this.loggedInUser = u);
+    currentUser.observable().subscribe(this::propagateUser);
     currentConfig.observable().subscribe(c -> this.config = c);
+  }
+
+  private void propagateUser(final @Nullable User user) {
+    if (user != null) {
+      identify(user);
+    }
+    this.loggedInUser = user;
+  }
+
+  @Override
+  public void identify(final @NotNull User user) {
+    this.identifiedId.onNext(user.id());
+  }
+
+  @Override
+  public void reset() {
+    this.loggedInUser = null;
+    this.identifiedId.onNext(null);
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return true;
   }
 
   public static class Event {
@@ -42,19 +67,21 @@ public final class MockTrackingClient extends TrackingClientType {
   private final @NonNull PublishSubject<Event> events = PublishSubject.create();
   public final @NonNull Observable<String> eventNames = this.events.map(e -> e.name);
   public final @NonNull Observable<Map<String, Object>> eventProperties = this.events.map(e -> e.properties);
+  public final @NonNull BehaviorSubject<Long> identifiedId = BehaviorSubject.create();
 
   @Override
-  public void track(final @NonNull String eventName, final @NonNull Map<String, Object> additionalProperties) {
+  public void track(final @NotNull String eventName, final @NotNull Map<String, ?> additionalProperties) {
     this.events.onNext(new Event(eventName, combinedProperties(additionalProperties)));
   }
 
   @Override
-  protected ExperimentsClientType optimizely() {
+  public ExperimentsClientType optimizely() {
     return this.optimizely;
   }
 
   @Override
-  protected @NonNull Type type() {
+  @NonNull
+  public Type type() {
     return this.type;
   }
 
@@ -135,7 +162,7 @@ public final class MockTrackingClient extends TrackingClientType {
   }
 
   @Override
-  protected User loggedInUser() {
+  public User loggedInUser() {
     return this.loggedInUser;
   }
 

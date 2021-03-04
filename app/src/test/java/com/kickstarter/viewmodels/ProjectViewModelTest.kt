@@ -8,6 +8,7 @@ import com.kickstarter.KSRobolectricTestCase
 import com.kickstarter.R
 import com.kickstarter.libs.*
 import com.kickstarter.libs.models.OptimizelyExperiment
+import com.kickstarter.libs.utils.EventName
 import com.kickstarter.mock.MockExperimentsClientType
 import com.kickstarter.mock.factories.*
 import com.kickstarter.mock.services.MockApiClient
@@ -50,12 +51,12 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
     private val showUpdatePledge = TestSubscriber<Pair<PledgeData, PledgeReason>>()
     private val showUpdatePledgeSuccess = TestSubscriber<Void>()
     private val startCampaignWebViewActivity = TestSubscriber<ProjectData>()
-    private val startCommentsActivity = TestSubscriber<Project>()
+    private val startCommentsActivity = TestSubscriber<Pair<Project, ProjectData>>()
     private val startCreatorBioWebViewActivity = TestSubscriber<Project>()
     private val startCreatorDashboardActivity = TestSubscriber<Project>()
     private val startLoginToutActivity = TestSubscriber<Void>()
     private val startMessagesActivity = TestSubscriber<Project>()
-    private val startProjectUpdatesActivity = TestSubscriber<Project>()
+    private val startProjectUpdatesActivity = TestSubscriber<Pair<Project, ProjectData>>()
     private val startThanksActivity = TestSubscriber<Pair<CheckoutData, PledgeData>>()
     private val startVideoActivity = TestSubscriber<Project>()
     private val updateFragments = TestSubscriber<ProjectData>()
@@ -120,8 +121,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.reloadProjectContainerIsGone.assertValue(true)
         this.reloadProgressBarIsGone.assertValues(false, true)
         this.updateFragments.assertValue(ProjectDataFactory.project(refreshedProject))
-        this.koalaTest.assertValue(KoalaEvent.PROJECT_PAGE)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -166,8 +167,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.reloadProjectContainerIsGone.assertValues(false, true, true)
         this.reloadProgressBarIsGone.assertValues(false, true, false, true)
         this.updateFragments.assertValue(ProjectDataFactory.project(refreshedProject))
-        this.koalaTest.assertValue(KoalaEvent.PROJECT_PAGE)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -192,8 +193,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.projectData.assertValue(ProjectDataFactory.project(project))
         this.reloadProgressBarIsGone.assertValues(false, true)
         this.updateFragments.assertValue(ProjectDataFactory.project(project))
-        this.koalaTest.assertValue(KoalaEvent.PROJECT_PAGE)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -233,8 +234,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.reloadProgressBarIsGone.assertValues(false, true, false, true)
         this.reloadProjectContainerIsGone.assertValues(false, true, true)
         this.updateFragments.assertValue(ProjectDataFactory.project(refreshedProject))
-        this.koalaTest.assertValue(KoalaEvent.PROJECT_PAGE)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -261,7 +262,6 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.reloadProgressBarIsGone.assertValues(false, true)
         this.reloadProjectContainerIsGone.assertNoValues()
         this.updateFragments.assertNoValues()
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
     }
 
@@ -291,7 +291,6 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.startLoginToutActivity.assertValueCount(1)
 
         // A koala event for starring should NOT be tracked
-        this.koalaTest.assertValues(KoalaEvent.PROJECT_PAGE)
 
         // Login
         currentUser.refresh(UserFactory.user())
@@ -301,11 +300,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.heartDrawableId.assertValues(R.drawable.icon__heart_outline, R.drawable.icon__heart_outline, R.drawable.icon__heart)
         this.showSavedPromptTest.assertValueCount(1)
 
-        // A koala event for starring should be tracked
-        this.koalaTest.assertValues(
-                KoalaEvent.PROJECT_PAGE, KoalaEvent.PROJECT_STAR, KoalaEvent.STARRED_PROJECT
-        )
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, EventName.CTA_CLICKED.eventName)
     }
 
     @Test
@@ -333,10 +329,9 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         val expectedName = "Best Project 2K19"
         val expectedShareUrl = "https://www.kck.str/projects/" + creator.id().toString() + "/" + slug + "?ref=android_project_share"
         this.showShareSheet.assertValues(Pair(expectedName, expectedShareUrl))
-        this.koalaTest.assertValues(
-                KoalaEvent.PROJECT_PAGE, KoalaEvent.PROJECT_SHOW_SHARE_SHEET_LEGACY, KoalaEvent.SHOWED_SHARE_SHEET
-        )
-        this.lakeTest.assertValue("Project Page Viewed")
+
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -401,7 +396,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbTextViewClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValues("Project Page Viewed", "Campaign Details Button Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Campaign Details Button Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Campaign Details Button Clicked")
         this.experimentsTest.assertValues("Project Page Viewed", "Campaign Details Button Clicked")
     }
 
@@ -415,7 +411,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbTextViewClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -429,7 +426,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbTextViewClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -443,7 +441,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbVariantClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValues("Project Page Viewed", "Campaign Details Button Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Campaign Details Button Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Campaign Details Button Clicked")
         this.experimentsTest.assertValues("Project Page Viewed", "Campaign Details Button Clicked")
     }
 
@@ -457,7 +456,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbVariantClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -471,7 +471,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.blurbVariantClicked()
         this.startCampaignWebViewActivity.assertValues(ProjectDataFactory.project(project))
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -485,7 +486,7 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorNameTextViewClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValues("Project Page Viewed", "Creator Details Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Creator Details Clicked")
         this.experimentsTest.assertValues("Project Page Viewed", "Creator Details Clicked")
     }
 
@@ -499,7 +500,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorNameTextViewClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -513,7 +515,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorNameTextViewClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -527,7 +530,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorInfoVariantClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValues("Project Page Viewed", "Creator Details Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Creator Details Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Creator Details Clicked")
         this.experimentsTest.assertValues("Project Page Viewed", "Creator Details Clicked")
     }
 
@@ -541,7 +545,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorInfoVariantClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -555,7 +560,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.creatorInfoVariantClicked()
         this.startCreatorBioWebViewActivity.assertValues(project)
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Project Page Viewed")
     }
 
@@ -574,18 +580,23 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
     @Test
     fun testStartCommentsActivity() {
         val project = ProjectFactory.project()
+        val projectData = ProjectDataFactory.project(project)
+        val projectAndData = Pair.create(project, projectData)
+
         setUpEnvironment(environment())
 
         // Start the view model with a project.
         this.vm.intent(Intent().putExtra(IntentKey.PROJECT, project))
 
         this.vm.inputs.commentsTextViewClicked()
-        this.startCommentsActivity.assertValues(project)
+        this.startCommentsActivity.assertValues(projectAndData)
     }
 
     @Test
     fun testStartProjectUpdatesActivity() {
         val project = ProjectFactory.project()
+        val projectData = ProjectDataFactory.project(project)
+        val projectAndData = Pair.create(project, projectData)
         setUpEnvironment(environment())
 
         // Start the view model with a project.
@@ -593,7 +604,7 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         // Click on Updates button.
         this.vm.inputs.updatesTextViewClicked()
-        this.startProjectUpdatesActivity.assertValues(project)
+        this.startProjectUpdatesActivity.assertValues(projectAndData)
     }
 
     @Test
@@ -786,9 +797,10 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.pledgeToolbarNavigationClicked()
         this.expandPledgeSheet.assertValues(Pair(true, true), Pair(false, true))
         this.goBack.assertNoValues()
-        this.koalaTest.assertValues("Project Page", "Back this Project Button Clicked")
-        this.lakeTest.assertValues("Project Page Viewed", "Project Page Pledge Button Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Project Page Pledge Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Project Page Viewed", "Project Page Pledge Button Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Project Page Pledge Button Clicked", EventName.CTA_CLICKED.eventName)
+
     }
 
     @Test
@@ -799,9 +811,9 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.nativeProjectActionButtonClicked()
 
         this.expandPledgeSheet.assertValue(Pair(true, true))
-        this.koalaTest.assertValues("Project Page", "Back this Project Button Clicked")
-        this.lakeTest.assertValues("Project Page Viewed", "Project Page Pledge Button Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Project Page Pledge Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Project Page Viewed", "Project Page Pledge Button Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Project Page Pledge Button Clicked", EventName.CTA_CLICKED.eventName)
     }
 
     @Test
@@ -812,8 +824,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.nativeProjectActionButtonClicked()
 
         this.expandPledgeSheet.assertValue(Pair(true, true))
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -825,8 +837,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.nativeProjectActionButtonClicked()
 
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked")
-        this.lakeTest.assertValues("Project Page Viewed","Manage Pledge Button Clicked")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Manage Pledge Button Clicked")
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName, "Manage Pledge Button Clicked")
     }
 
     @Test
@@ -837,8 +849,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.nativeProjectActionButtonClicked()
 
         this.expandPledgeSheet.assertValue(Pair(true, true))
-        this.koalaTest.assertValues("Project Page", "View Rewards Button Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -849,8 +861,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.nativeProjectActionButtonClicked()
 
         this.expandPledgeSheet.assertValue(Pair(true, true))
-        this.koalaTest.assertValues("Project Page", "View Your Pledge Button Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -861,8 +873,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.activityResult(ActivityResult.create(ActivityRequestCodes.SHOW_REWARDS, Activity.RESULT_OK, null))
 
         this.expandPledgeSheet.assertValue(Pair(true, true))
-        this.koalaTest.assertValues("Project Page")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -873,8 +885,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.activityResult(ActivityResult.create(ActivityRequestCodes.SHOW_REWARDS, Activity.RESULT_CANCELED, null))
 
         this.expandPledgeSheet.assertNoValues()
-        this.koalaTest.assertValue("Project Page")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -886,8 +898,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.intent(intent)
 
         this.expandPledgeSheet.assertValues(Pair(true, true))
-        this.koalaTest.assertValue("Project Page")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -899,8 +911,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.intent(intent)
 
         this.expandPledgeSheet.assertNoValues()
-        this.koalaTest.assertValue("Project Page")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -911,8 +923,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.intent(intent)
 
         this.expandPledgeSheet.assertNoValues()
-        this.koalaTest.assertValue("Project Page")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -1169,8 +1181,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.cancelPledgeClicked()
 
         this.showCancelPledgeFragment.assertValue(backedProject)
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked", "Manage Pledge Option Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -1192,8 +1204,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.cancelPledgeClicked()
 
         this.showCancelPledgeFragment.assertNoValues()
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked", "Manage Pledge Option Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -1208,8 +1220,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.contactCreatorClicked()
 
         this.startMessagesActivity.assertValue(backedProject)
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked", "Manage Pledge Option Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -1261,8 +1273,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.viewRewardsClicked()
 
         this.revealRewardsFragment.assertValueCount(1)
-        this.koalaTest.assertValues("Project Page", "Manage Pledge Button Clicked", "Manage Pledge Option Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     @Test
@@ -1276,8 +1288,8 @@ class ProjectViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.viewRewardsClicked()
 
         this.revealRewardsFragment.assertValueCount(1)
-        this.koalaTest.assertValues("Project Page", "View Your Pledge Button Clicked", "Manage Pledge Option Clicked")
-        this.lakeTest.assertValue("Project Page Viewed")
+        this.lakeTest.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.segmentTrack.assertValues("Project Page Viewed", EventName.PAGE_VIEWED.eventName)
     }
 
     // TODO this will be fixed in https://kickstarter.atlassian.net/browse/NT-1390

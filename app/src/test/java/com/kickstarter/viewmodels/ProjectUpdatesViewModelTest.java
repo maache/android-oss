@@ -5,6 +5,8 @@ import android.util.Pair;
 
 import com.kickstarter.KSRobolectricTestCase;
 import com.kickstarter.libs.Environment;
+import com.kickstarter.libs.utils.EventName;
+import com.kickstarter.mock.factories.ProjectDataFactory;
 import com.kickstarter.mock.factories.ProjectFactory;
 import com.kickstarter.mock.factories.UpdateFactory;
 import com.kickstarter.mock.services.MockApiClient;
@@ -12,6 +14,7 @@ import com.kickstarter.models.Project;
 import com.kickstarter.models.Update;
 import com.kickstarter.services.apiresponses.UpdatesEnvelope;
 import com.kickstarter.ui.IntentKey;
+import com.kickstarter.ui.data.ProjectData;
 
 import org.junit.Test;
 
@@ -30,7 +33,7 @@ public class ProjectUpdatesViewModelTest extends KSRobolectricTestCase {
   private final TestSubscriber<Pair<Project, List<Update>>> projectAndUpdates = new TestSubscriber<>();
   private final TestSubscriber<Pair<Project, Update>> startUpdateActivity = new TestSubscriber<>();
 
-  private void setUpEnvironment(final @NonNull Environment env, final @NonNull Project project) {
+  private void setUpEnvironment(final @NonNull Environment env, final @NonNull Project project, final @NonNull ProjectData projectData) {
     this.vm = new ProjectUpdatesViewModel.ViewModel(env);
     this.vm.outputs.horizontalProgressBarIsGone().subscribe(this.horizontalProgressBarIsGone);
     this.vm.outputs.isFetchingUpdates().subscribe(this.isFetchingUpdates);
@@ -38,23 +41,31 @@ public class ProjectUpdatesViewModelTest extends KSRobolectricTestCase {
     this.vm.outputs.startUpdateActivity().subscribe(this.startUpdateActivity);
 
     // Configure the view model with a project intent.
-    this.vm.intent(new Intent().putExtra(IntentKey.PROJECT, project));
+    this.vm.intent(new Intent().putExtra(IntentKey.PROJECT, project).putExtra(IntentKey.PROJECT_DATA, projectData));
+  }
+
+  @Test
+  public void init_whenViewModelInstantiated_shouldTrackPageViewEvent() {
+    final Project project = ProjectFactory.project();
+    setUpEnvironment(environment(), project, ProjectDataFactory.Companion.project(project));
+
+    this.lakeTest.assertValue(EventName.PAGE_VIEWED.getEventName());
   }
 
   @Test
   public void testHorizontalProgressBarIsGone() {
-    setUpEnvironment(environment(), ProjectFactory.project());
+    final Project project = ProjectFactory.project();
+    setUpEnvironment(environment(), project, ProjectDataFactory.Companion.project(project));
 
     this.horizontalProgressBarIsGone.assertValues(false, true);
-    this.koalaTest.assertValue("Viewed Updates");
   }
 
   @Test
   public void testIsFetchingUpdates() {
-    setUpEnvironment(environment(), ProjectFactory.project());
+    final Project project = ProjectFactory.project();
+    setUpEnvironment(environment(), project, ProjectDataFactory.Companion.project(project));
 
     this.isFetchingUpdates.assertValues(true, false);
-    this.koalaTest.assertValue("Viewed Updates");
   }
 
   @Test
@@ -77,10 +88,9 @@ public class ProjectUpdatesViewModelTest extends KSRobolectricTestCase {
             .build()
         );
       }
-    }).build(), project);
+    }).build(), project, ProjectDataFactory.Companion.project(project));
 
     this.projectAndUpdates.assertValues(Pair.create(project, updates));
-    this.koalaTest.assertValue("Viewed Updates");
   }
 
   @Test
@@ -98,12 +108,11 @@ public class ProjectUpdatesViewModelTest extends KSRobolectricTestCase {
                         .build()
         );
       }
-    }).build(), project);
+    }).build(), project, ProjectDataFactory.Companion.project(project));
 
     this.projectAndUpdates.assertValues(Pair.create(project, Collections.emptyList()));
     this.isFetchingUpdates.assertValues(true, false);
     this.horizontalProgressBarIsGone.assertValues(false, true);
-    this.koalaTest.assertValue("Viewed Updates");
   }
 
   @Test
@@ -124,12 +133,11 @@ public class ProjectUpdatesViewModelTest extends KSRobolectricTestCase {
             .build()
         );
       }
-    }).build(), project);
+    }).build(), project, ProjectDataFactory.Companion.project(project));
 
     this.vm.inputs.updateClicked(update);
 
     this.startUpdateActivity.assertValues(Pair.create(project, update));
-    this.koalaTest.assertValues("Viewed Updates", "Viewed Update");
   }
 
   private UpdatesEnvelope.UrlsEnvelope urlsEnvelope() {

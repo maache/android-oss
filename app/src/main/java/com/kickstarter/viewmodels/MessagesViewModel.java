@@ -12,7 +12,7 @@ import com.kickstarter.libs.utils.IntegerUtils;
 import com.kickstarter.libs.utils.ListUtils;
 import com.kickstarter.libs.utils.ObjectUtils;
 import com.kickstarter.libs.utils.PairUtils;
-import com.kickstarter.libs.utils.StringUtils;
+import com.kickstarter.libs.utils.extensions.StringExt;
 import com.kickstarter.models.Backing;
 import com.kickstarter.models.BackingWrapper;
 import com.kickstarter.models.Message;
@@ -265,7 +265,7 @@ public interface MessagesViewModel {
         .distinctUntilChanged();
 
       final Observable<Boolean> messageHasBody = this.messageEditTextChanged
-        .map(StringUtils::isPresent);
+        .map(it -> ObjectUtils.isNull(it) ? false : StringExt.isPresent(it));
 
       messageThreadEnvelope
         .map(MessageThreadEnvelope::messageThread)
@@ -364,10 +364,6 @@ public interface MessagesViewModel {
         .compose(bindToLifecycle())
         .subscribe(this.startBackingActivity::onNext);
 
-      project
-        .take(1)
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackViewedMessageThread);
 
       // Set only the initial padding once to counteract the appbar offset.
       this.recyclerViewInitialBottomPadding = this.appBarTotalScrollRange.take(1);
@@ -377,11 +373,6 @@ public interface MessagesViewModel {
         .filter(IntegerUtils::isNonZero)
         .compose(ignoreValues())
         .take(1);
-
-      Observable.combineLatest(project, koalaContext, Pair::create)
-        .compose(takeWhen(messageSent))
-        .compose(bindToLifecycle())
-        .subscribe(pc -> this.koala.trackSentMessage(pc.first, pc.second));
     }
 
     private static @Nullable Observable<Pair<Backing, Project>> backingAndProjectFromData(final @NonNull MessagesData data,

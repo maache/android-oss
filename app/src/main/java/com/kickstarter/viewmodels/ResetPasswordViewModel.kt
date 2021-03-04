@@ -5,14 +5,15 @@ import com.kickstarter.libs.Environment
 import com.kickstarter.libs.rx.transformers.Transformers
 import com.kickstarter.libs.rx.transformers.Transformers.errors
 import com.kickstarter.libs.rx.transformers.Transformers.values
-import com.kickstarter.libs.utils.ObjectUtils
-import com.kickstarter.libs.utils.StringUtils
+import com.kickstarter.libs.utils.extensions.isEmail
 import com.kickstarter.models.User
 import com.kickstarter.services.ApiClientType
 import com.kickstarter.services.apiresponses.ErrorEnvelope
+import com.kickstarter.ui.IntentKey
 import com.kickstarter.ui.activities.ResetPasswordActivity
 import rx.Notification
 import rx.Observable
+import rx.subjects.BehaviorSubject
 import rx.subjects.PublishSubject
 
 interface ResetPasswordViewModel {
@@ -37,6 +38,9 @@ interface ResetPasswordViewModel {
 
         /** Emits when password reset fails. */
         fun resetError(): Observable<String>
+
+        /** Fill the view's email address when it's supplied from the intent.  */
+        fun prefillEmail(): Observable<String>
     }
 
     class ViewModel(val environment: Environment) : ActivityViewModel<ResetPasswordActivity>(environment), Inputs, Outputs {
@@ -49,19 +53,31 @@ interface ResetPasswordViewModel {
         private val isFormValid = PublishSubject.create<Boolean>()
         private val resetSuccess = PublishSubject.create<Void>()
         private val resetError = PublishSubject.create<ErrorEnvelope>()
+        private val prefillEmail = BehaviorSubject.create<String>()
+
+        private val ERROR_GENERIC = "Something went wrong, please try again."
 
         val inputs: Inputs = this
         val outputs: Outputs = this
 
         init {
+            intent()
+                    .filter { it.hasExtra(IntentKey.EMAIL) }
+                    .map {
+                        it.getStringExtra(IntentKey.EMAIL)
+                    }
+                    .compose(bindToLifecycle())
+                    .subscribe(this.prefillEmail)
+
             this.email
-                    .map(StringUtils::isEmail)
+                    .map { it.isEmail() }
                     .compose(bindToLifecycle())
                     .subscribe(this.isFormValid)
 
             val resetPasswordNotification = this.email
                     .compose<String>(Transformers.takeWhen(this.resetPasswordClick))
                     .switchMap(this::submitEmail)
+                    .share()
 
             resetPasswordNotification
                     .compose(values())
@@ -71,19 +87,9 @@ interface ResetPasswordViewModel {
             resetPasswordNotification
                     .compose(errors())
                     .map { ErrorEnvelope.fromThrowable(it) }
-                    .filter { ObjectUtils.isNotNull(it) }
                     .compose(bindToLifecycle())
                     .subscribe(this.resetError)
 
-            this.resetError
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackResetPasswordError() }
-
-            this.resetSuccess
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackResetPasswordSuccess() }
-
-            this.koala.trackResetPasswordFormView()
             this.lake.trackForgotPasswordPageViewed()
         }
 
@@ -122,7 +128,9 @@ interface ResetPasswordViewModel {
         override fun resetError(): Observable<String> {
             return this.resetError
                     .takeUntil(this.resetSuccess)
-                    .map { it.errorMessage() }
+                    .map {  it?.errorMessage() ?: ERROR_GENERIC }
         }
+
+        override fun prefillEmail(): BehaviorSubject<String> = this.prefillEmail
     }
 }

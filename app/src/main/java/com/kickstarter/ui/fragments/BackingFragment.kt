@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.jakewharton.rxbinding.view.RxView
 import com.kickstarter.R
-import com.kickstarter.ui.extensions.showSnackbar
 import com.kickstarter.libs.BaseFragment
 import com.kickstarter.libs.Either
 import com.kickstarter.libs.SwipeRefresher
@@ -28,6 +27,7 @@ import com.kickstarter.models.Reward
 import com.kickstarter.ui.adapters.RewardAndAddOnsAdapter
 import com.kickstarter.ui.data.PledgeStatusData
 import com.kickstarter.ui.data.ProjectData
+import com.kickstarter.ui.extensions.showSnackbar
 import com.kickstarter.viewmodels.BackingFragmentViewModel
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.fragment_backing.*
@@ -230,7 +230,7 @@ class BackingFragment : BaseFragment<BackingFragmentViewModel.ViewModel>() {
 
         delivery_reminder_label.text = sb.toString()
         val boldPortionLength = delivery_reminder_label.text.toString().split(".").first().length
-        setBoldSpanOnTextView(boldPortionLength, delivery_reminder_label, resources.getColor(R.color.ksr_dark_grey_500, null))
+        setBoldSpanOnTextView(boldPortionLength, delivery_reminder_label, resources.getColor(R.color.kds_support_400, null))
 
         SwipeRefresher(
                 this, backing_swipe_refresh_layout, { this.viewModel.inputs.refreshProject() }, { this.viewModel.outputs.swipeRefresherProgressIsVisible() }
@@ -250,8 +250,8 @@ class BackingFragment : BaseFragment<BackingFragmentViewModel.ViewModel>() {
         val totalCharacters2 = estimated_delivery_label_2.text.length
         estimated_delivery_label.text = estimated_delivery_label.text.toString() + " " + it
         estimated_delivery_label_2.text = estimated_delivery_label_2.text.toString() + " " + it
-        setBoldSpanOnTextView(totalCharacters, estimated_delivery_label, resources.getColor(R.color.ksr_dark_grey_500, null))
-        setBoldSpanOnTextView(totalCharacters2, estimated_delivery_label_2, resources.getColor(R.color.ksr_dark_grey_500, null))
+        setBoldSpanOnTextView(totalCharacters, estimated_delivery_label, resources.getColor(R.color.kds_support_400, null))
+        setBoldSpanOnTextView(totalCharacters2, estimated_delivery_label_2, resources.getColor(R.color.kds_support_400, null))
     }
 
     fun isRefreshing(isRefreshing: Boolean){
@@ -296,7 +296,7 @@ class BackingFragment : BaseFragment<BackingFragmentViewModel.ViewModel>() {
 
     private fun setBackerImageView(url: String) {
         context?.apply {
-            Picasso.with(this).load(url)
+            Picasso.get().load(url)
                     .transform(CircleTransformation())
                     .into(backing_avatar)
         }

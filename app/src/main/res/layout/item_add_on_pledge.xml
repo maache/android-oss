@@ -45,7 +45,7 @@
                     style="@style/Title2Medium"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/ksr_green_500"
+                    android:textColor="@color/kds_create_700"
                     android:textSize="@dimen/subheadline"
                     android:textStyle="bold"
                     app:layout_constraintStart_toStartOf="parent"
@@ -57,7 +57,7 @@
                     style="=@style/Title2Medium"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/ksr_green_500"
+                    android:textColor="@color/kds_create_700"
                     android:textSize="@dimen/subheadline"
                     android:visibility="gone"
                     app:layout_constraintStart_toEndOf="@id/add_on_minimum"
@@ -71,7 +71,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/grid_1_half"
-                    android:textColor="@color/ksr_dark_grey_500"
+                    android:textColor="@color/kds_support_400"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/add_on_minimum"
                     tools:text="About $15 USD"
@@ -129,7 +129,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="@dimen/grid_1"
-                        android:textColor="@color/ksr_dark_grey_500"
+                        android:textColor="@color/kds_support_400"
                         android:visibility="gone"
                         tools:text="3 days left"
                         tools:visibility="visible" />
@@ -140,7 +140,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="@dimen/grid_1"
-                        android:textColor="@color/ksr_dark_grey_500"
+                        android:textColor="@color/kds_support_400"
                         android:visibility="gone"
                         tools:text="30 left"
                         tools:visibility="visible" />
@@ -151,7 +151,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="@dimen/grid_1"
-                        android:textColor="@color/ksr_dark_grey_500"
+                        android:textColor="@color/kds_support_400"
                         android:visibility="gone"
                         tools:text="Limit 4"
                         tools:visibility="visible" />
@@ -175,7 +175,7 @@
                         android:backgroundTint="@color/soft_grey_enabled_drak_gray_disabled"
                         android:contentDescription="@string/Decrease_pledge"
                         android:src="@drawable/ic_remove"
-                        android:tint="@color/green_enabled_dark_grey_disabled"
+                        app:tint="@color/green_enabled_dark_grey_disabled"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent"/>
 
@@ -187,7 +187,7 @@
                         android:contentDescription="@string/Increase_pledge"
                         android:backgroundTint="@color/soft_grey_enabled_drak_gray_disabled"
                         android:src="@drawable/ic_add"
-                        android:tint="@color/green_enabled_dark_grey_disabled"
+                        app:tint="@color/green_enabled_dark_grey_disabled"
                         app:layout_constraintStart_toEndOf="@id/decrease_quantity_add_on"
                         app:layout_constraintTop_toTopOf="@+id/decrease_quantity_add_on" />
 
@@ -212,7 +212,7 @@
                     android:layout_marginTop="@dimen/grid_9_half"
                     android:gravity="center"
                     android:textAllCaps="false"
-                    android:textColor="@color/white"
+                    android:textColor="@color/kds_white"
                     android:background="@drawable/border_rounded_solid_black"
                     android:text="@string/Add"
                     style="@style/TextAppearance.AppCompat.Button"

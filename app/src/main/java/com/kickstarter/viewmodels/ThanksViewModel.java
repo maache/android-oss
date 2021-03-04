@@ -164,19 +164,6 @@ public interface ThanksViewModel {
         .compose(bindToLifecycle())
         .subscribe(__ -> this.showConfirmGamesNewsletterDialog.onNext(null));
 
-      // Event tracking
-      this.categoryCardViewHolderClicked
-        .compose(bindToLifecycle())
-        .subscribe(__ -> this.koala.trackCheckoutFinishJumpToDiscovery());
-
-      this.projectCardViewHolderClicked
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackCheckoutFinishJumpToProject);
-
-      this.signedUpToGamesNewsletter
-        .compose(bindToLifecycle())
-        .subscribe(__ -> this.koala.trackNewsletterToggle(true));
-
       final Observable<CheckoutData> checkoutData = intent()
         .map(i -> i.getParcelableExtra(IntentKey.CHECKOUT_DATA))
         .ofType(CheckoutData.class)
@@ -192,7 +179,10 @@ public interface ThanksViewModel {
 
       checkoutAndPledgeData
         .compose(bindToLifecycle())
-        .subscribe(checkoutDataPledgeData -> this.lake.trackThanksPageViewed(checkoutDataPledgeData.first, checkoutDataPledgeData.second));
+        .subscribe(checkoutDataPledgeData -> {
+          this.lake.trackThanksPageViewed(checkoutDataPledgeData.first, checkoutDataPledgeData.second);
+          this.lake.trackThanksScreenViewed(checkoutDataPledgeData.first, checkoutDataPledgeData.second);
+        });
     }
 
     /**

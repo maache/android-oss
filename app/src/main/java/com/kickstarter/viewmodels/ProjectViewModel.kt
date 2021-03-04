@@ -9,6 +9,9 @@ import com.kickstarter.libs.*
 import com.kickstarter.libs.models.OptimizelyExperiment
 import com.kickstarter.libs.rx.transformers.Transformers.*
 import com.kickstarter.libs.utils.*
+import com.kickstarter.libs.utils.EventContextValues.ProjectContextSectionName.OVERVIEW
+import com.kickstarter.libs.utils.extensions.backedReward
+import com.kickstarter.libs.utils.extensions.isErrored
 import com.kickstarter.models.Backing
 import com.kickstarter.models.Project
 import com.kickstarter.models.Reward
@@ -18,7 +21,6 @@ import com.kickstarter.ui.IntentKey
 import com.kickstarter.ui.activities.ProjectActivity
 import com.kickstarter.ui.adapters.ProjectAdapter
 import com.kickstarter.ui.data.*
-import com.kickstarter.ui.intentmappers.IntentMapper
 import com.kickstarter.ui.intentmappers.ProjectIntentMapper
 import com.kickstarter.ui.viewholders.ProjectViewHolder
 import rx.Observable
@@ -192,7 +194,7 @@ interface ProjectViewModel {
         fun startCampaignWebViewActivity(): Observable<ProjectData>
 
         /** Emits when we should start [com.kickstarter.ui.activities.CommentsActivity].  */
-        fun startCommentsActivity(): Observable<Project>
+        fun startCommentsActivity(): Observable<Pair<Project, ProjectData>>
 
         /** Emits when we should start the creator bio [com.kickstarter.ui.activities.CreatorBioActivity].  */
         fun startCreatorBioWebViewActivity(): Observable<Project>
@@ -207,7 +209,7 @@ interface ProjectViewModel {
         fun startMessagesActivity(): Observable<Project>
 
         /** Emits when we should start [com.kickstarter.ui.activities.ProjectUpdatesActivity].  */
-        fun startProjectUpdatesActivity(): Observable<Project>
+        fun startProjectUpdatesActivity(): Observable<Pair<Project, ProjectData>>
 
         /** Emits when we the pledge was successful and should start the [com.kickstarter.ui.activities.ThanksActivity]. */
         fun startThanksActivity(): Observable<Pair<CheckoutData, PledgeData>>
@@ -282,12 +284,12 @@ interface ProjectViewModel {
         private val showUpdatePledge = PublishSubject.create<Pair<PledgeData, PledgeReason>>()
         private val showUpdatePledgeSuccess = PublishSubject.create<Void>()
         private val startCampaignWebViewActivity = PublishSubject.create<ProjectData>()
-        private val startCommentsActivity = PublishSubject.create<Project>()
+        private val startCommentsActivity = PublishSubject.create<Pair<Project, ProjectData>>()
         private val startCreatorBioWebViewActivity = PublishSubject.create<Project>()
         private val startCreatorDashboardActivity = PublishSubject.create<Project>()
         private val startLoginToutActivity = PublishSubject.create<Void>()
         private val startMessagesActivity = PublishSubject.create<Project>()
-        private val startProjectUpdatesActivity = PublishSubject.create<Project>()
+        private val startProjectUpdatesActivity = PublishSubject.create<Pair<Project, ProjectData>>()
         private val startThanksActivity = PublishSubject.create<Pair<CheckoutData, PledgeData>>()
         private val startVideoActivity = PublishSubject.create<Project>()
         private val updateFragments = BehaviorSubject.create<ProjectData>()
@@ -413,7 +415,13 @@ interface ProjectViewModel {
                     savedProjectOnLoginSuccess
             )
 
-            projectOnUserChangeSave.mergeWith(savedProjectOnLoginSuccess)
+            val projectSavedStatus = projectOnUserChangeSave.mergeWith(savedProjectOnLoginSuccess)
+
+            projectSavedStatus
+                    .compose(bindToLifecycle())
+                    .subscribe{ this.lake.trackWatchProjectCTA(it) }
+
+            projectSavedStatus
                     .filter { p -> p.isStarred && p.isLive && !p.isApproachingDeadline }
                     .compose(ignoreValues())
                     .compose(bindToLifecycle())
@@ -448,6 +456,7 @@ interface ProjectViewModel {
 
             currentProject
                     .compose<Project>(takeWhen(this.commentsTextViewClicked))
+                    .compose<Pair<Project, ProjectData>>(combineLatestPair(projectData))
                     .compose(bindToLifecycle())
                     .subscribe(this.startCommentsActivity)
 
@@ -458,6 +467,7 @@ interface ProjectViewModel {
 
             currentProject
                     .compose<Project>(takeWhen(this.updatesTextViewClicked))
+                    .compose<Pair<Project, ProjectData>>(combineLatestPair(projectData))
                     .compose(bindToLifecycle())
                     .subscribe(this.startProjectUpdatesActivity)
 
@@ -592,8 +602,8 @@ interface ProjectViewModel {
 
             val projectDataAndBackedReward = projectData
                     .compose<Pair<ProjectData, Backing>>(combineLatestPair(backing))
-                    .map { pD ->
-                        BackingUtils.backedReward(pD.first.project())?.let {
+                    .map {
+                        pD -> pD.first.project().backing()?.backedReward(pD.first.project())?.let {
                             Pair(pD.first.toBuilder().backing(pD.second).build(), it)
                         }
                     }
@@ -621,15 +631,14 @@ interface ProjectViewModel {
                     .subscribe(this.revealRewardsFragment)
 
             currentProject
-                    .map { it.isBacking && it.isLive || BackingUtils.isErrored(it.backing()) }
+                    .map { it.isBacking && it.isLive || it.backing()?.isErrored() == true }
                     .distinctUntilChanged()
                     .compose(bindToLifecycle())
                     .subscribe(this.backingDetailsIsVisible)
 
             currentProject
                     .filter { it.isBacking }
-                    .map { it.backing() }
-                    .map { if (BackingUtils.isErrored(it)) R.string.Payment_failure else R.string.Youre_a_backer }
+                    .map { if (it.backing()?.isErrored() == true) R.string.Payment_failure else R.string.Youre_a_backer }
                     .distinctUntilChanged()
                     .compose(bindToLifecycle())
                     .subscribe(this.backingDetailsTitle)
@@ -699,15 +708,6 @@ interface ProjectViewModel {
                     .subscribe(this.scrimIsVisible)
 
             currentProject
-                    .compose<Project>(takeWhen(this.showShareSheet))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackShowProjectShareSheet(it) }
-
-            this.startVideoActivity
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackVideoStart(it) }
-
-            currentProject
                     .map { p -> if (p.isStarred) R.drawable.icon__heart else R.drawable.icon__heart_outline }
                     .subscribe(this.heartDrawableId)
 
@@ -734,8 +734,8 @@ interface ProjectViewModel {
 
                         val dataWithStoredCookieRefTag = storeCurrentCookieRefTag(data)
 
-                        this.koala.trackProjectShow(dataWithStoredCookieRefTag)
                         this.lake.trackProjectPageViewed(dataWithStoredCookieRefTag, pledgeFlowContext)
+                        this.lake.trackProjectScreenViewed(dataWithStoredCookieRefTag, OVERVIEW.contextName)
                     }
 
             fullProjectDataAndCurrentUser
@@ -747,61 +747,10 @@ interface ProjectViewModel {
                     .compose<Pair<ProjectData, PledgeFlowContext?>>(takeWhen(this.nativeProjectActionButtonClicked))
                     .filter { it.first.project().isLive && !it.first.project().isBacking }
                     .compose(bindToLifecycle())
-                    .subscribe { this.lake.trackProjectPagePledgeButtonClicked(storeCurrentCookieRefTag(it.first), it.second) }
-
-            this.pledgeActionButtonText
-                    .map { eventName(it) }
-                    .compose<Pair<String, Project>>(combineLatestPair(currentProject))
-                    .compose<Pair<String, Project>>(takeWhen(this.nativeProjectActionButtonClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackProjectActionButtonClicked(it.first, it.second) }
-
-            currentProject
-                    .compose<Project>(takeWhen(this.updatePledgeClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "update_pledge") }
-
-            currentProject
-                    .compose<Project>(takeWhen(this.updatePaymentClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "change_payment_method") }
-
-            currentProject
-                    .filter { it.isLive }
-                    .compose<Project>(takeWhen(this.viewRewardsClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "choose_another_reward") }
-
-            currentProject
-                    .filter { !it.isLive }
-                    .compose<Project>(takeWhen(this.viewRewardsClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "view_rewards") }
-
-            currentProject
-                    .compose<Project>(takeWhen(this.cancelPledgeClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "cancel_pledge") }
-
-            currentProject
-                    .compose<Project>(takeWhen(this.contactCreatorClicked))
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackManagePledgeOptionClicked(it, "contact_creator") }
-
-            projectOnUserChangeSave
-                    .mergeWith(savedProjectOnLoginSuccess)
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackProjectStar(it) }
-
-            pushNotificationEnvelope
-                    .take(1)
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackPushNotification(it) }
-
-            intent()
-                    .filter { IntentMapper.appBannerIsSet(it) }
-                    .compose(bindToLifecycle())
-                    .subscribe { this.koala.trackOpenedAppBanner() }
+                    .subscribe {
+                        this.lake.trackProjectPagePledgeButtonClicked(storeCurrentCookieRefTag(it.first), it.second)
+                        this.lake.trackPledgeInitiateCTA(it.first)
+                    }
 
             fullProjectDataAndPledgeFlowContext
                     .map { it.first }
@@ -896,7 +845,7 @@ interface ProjectViewModel {
             return when {
                 ProjectUtils.userIsCreator(project, currentUser) -> null
                 project.isLive && !project.isBacking -> PledgeFlowContext.NEW_PLEDGE
-                !project.isLive && BackingUtils.isErrored(project.backing()) -> PledgeFlowContext.FIX_ERRORED_PLEDGE
+                !project.isLive && project.backing()?.isErrored() ?: false -> PledgeFlowContext.FIX_ERRORED_PLEDGE
                 else -> null
             }
         }
@@ -1134,7 +1083,7 @@ interface ProjectViewModel {
         override fun startCampaignWebViewActivity(): Observable<ProjectData> = this.startCampaignWebViewActivity
 
         @NonNull
-        override fun startCommentsActivity(): Observable<Project> = this.startCommentsActivity
+        override fun startCommentsActivity(): Observable<Pair<Project, ProjectData>> = this.startCommentsActivity
 
         @NonNull
         override fun startCreatorBioWebViewActivity(): Observable<Project> = this.startCreatorBioWebViewActivity
@@ -1152,7 +1101,7 @@ interface ProjectViewModel {
         override fun startThanksActivity(): Observable<Pair<CheckoutData, PledgeData>> = this.startThanksActivity
 
         @NonNull
-        override fun startProjectUpdatesActivity(): Observable<Project> = this.startProjectUpdatesActivity
+        override fun startProjectUpdatesActivity(): Observable<Pair<Project, ProjectData>> = this.startProjectUpdatesActivity
 
         @NonNull
         override fun startVideoActivity(): Observable<Project> = this.startVideoActivity

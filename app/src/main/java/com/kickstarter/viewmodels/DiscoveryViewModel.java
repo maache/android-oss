@@ -7,7 +7,6 @@ import android.util.Pair;
 import com.kickstarter.R;
 import com.kickstarter.libs.ActivityViewModel;
 import com.kickstarter.libs.BuildCheck;
-import com.kickstarter.libs.Config;
 import com.kickstarter.libs.CurrentConfigType;
 import com.kickstarter.libs.CurrentUserType;
 import com.kickstarter.libs.Environment;
@@ -18,9 +17,8 @@ import com.kickstarter.libs.utils.DiscoveryDrawerUtils;
 import com.kickstarter.libs.utils.DiscoveryUtils;
 import com.kickstarter.libs.utils.IntegerUtils;
 import com.kickstarter.libs.utils.ObjectUtils;
-import com.kickstarter.libs.utils.StringUtils;
 import com.kickstarter.libs.utils.UrlUtils;
-import com.kickstarter.libs.utils.extensions.ConfigExtension;
+import com.kickstarter.libs.utils.extensions.StringExt;
 import com.kickstarter.libs.utils.extensions.UriExt;
 import com.kickstarter.models.Category;
 import com.kickstarter.models.QualtricsIntercept;
@@ -28,6 +26,7 @@ import com.kickstarter.models.QualtricsResult;
 import com.kickstarter.models.User;
 import com.kickstarter.services.ApiClientType;
 import com.kickstarter.services.DiscoveryParams;
+import com.kickstarter.services.KSUri;
 import com.kickstarter.services.WebClientType;
 import com.kickstarter.services.apiresponses.EmailVerificationEnvelope;
 import com.kickstarter.services.apiresponses.ErrorEnvelope;
@@ -37,7 +36,6 @@ import com.kickstarter.ui.adapters.DiscoveryDrawerAdapter;
 import com.kickstarter.ui.adapters.DiscoveryPagerAdapter;
 import com.kickstarter.ui.adapters.data.NavigationDrawerData;
 import com.kickstarter.ui.intentmappers.DiscoveryIntentMapper;
-import com.kickstarter.ui.intentmappers.IntentMapper;
 import com.kickstarter.ui.viewholders.discoverydrawer.ChildFilterViewHolder;
 import com.kickstarter.ui.viewholders.discoverydrawer.LoggedInViewHolder;
 import com.kickstarter.ui.viewholders.discoverydrawer.LoggedOutViewHolder;
@@ -49,8 +47,6 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import okhttp3.Response;
 import rx.Notification;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
@@ -208,16 +204,10 @@ public interface DiscoveryViewModel {
         .map(intentAndUser -> DiscoveryParams.getDefaultParams(intentAndUser.second))
         .share();
 
-      final Observable<Config> currentConfig = this.currentConfigType.observable()
-              .distinctUntilChanged();
-
       final Observable<Uri> uriFromVerification = intent()
         .map(Intent::getData)
         .ofType(Uri.class)
-        .compose(combineLatestPair(currentConfig))
-        .filter(it -> ConfigExtension.isFeatureFlagEnabled(it.second, ConfigExtension.EMAIL_VERIFICATION_FLOW))
-        .map(it -> it.first)
-        .filter(UriExt::isVerificationEmailUrl);
+        .filter(KSUri::isVerificationEmailUrl);
 
       final Observable<Notification<EmailVerificationEnvelope>> verification = uriFromVerification
               .map(UriExt::getTokenFromQueryParams)
@@ -270,12 +260,18 @@ public interface DiscoveryViewModel {
         .compose(takePairWhen(this.sortClicked.map(DiscoveryUtils::sortFromPosition)))
         .map(paramsAndSort -> paramsAndSort.first.toBuilder().sort(paramsAndSort.second).build())
         .compose(bindToLifecycle())
-        .subscribe(this.lake::trackExploreSortClicked);
+        .subscribe(discoveryParams -> {
+          this.lake.trackExploreSortClicked(discoveryParams);
+          this.lake.trackDiscoverSortCTA(discoveryParams);
+        });
 
       paramsWithSort
         .compose(takeWhen(drawerParamsClicked))
         .compose(bindToLifecycle())
-        .subscribe(this.lake::trackFilterClicked);
+        .subscribe(discoveryParams -> {
+          this.lake.trackFilterClicked(discoveryParams);
+          this.lake.trackDiscoverFilterCTA(discoveryParams);
+        });
 
       final Observable<List<Category>> categories = this.apiClient.fetchCategories()
         .compose(neverError())
@@ -343,10 +339,6 @@ public interface DiscoveryViewModel {
         .compose(bindToLifecycle())
         .subscribe(this.navigationDrawerData);
 
-      drawerParamsClicked
-        .compose(bindToLifecycle())
-        .subscribe(this.koala::trackDiscoveryFilterSelected);
-
       final List<Observable<Boolean>> drawerOpenObservables = Arrays.asList(
         this.openDrawer,
         this.childFilterRowClick.map(__ -> false),
@@ -369,19 +361,10 @@ public interface DiscoveryViewModel {
       final Observable<Boolean> drawerOpened = this.openDrawer
         .filter(BooleanUtils::isTrue);
 
-      drawerOpened
-        .compose(bindToLifecycle())
-        .subscribe(__ -> this.koala.trackDiscoveryFilters());
-
       paramsWithSort
         .compose(takeWhen(drawerOpened))
         .compose(bindToLifecycle())
         .subscribe(this.lake::trackHamburgerMenuClicked);
-
-      intent()
-        .filter(IntentMapper::appBannerIsSet)
-        .compose(bindToLifecycle())
-        .subscribe(__ -> this.koala.trackOpenedAppBanner());
 
       currentUser
         .map(this::currentDrawerMenuIcon)
@@ -435,7 +418,8 @@ public interface DiscoveryViewModel {
           final User user = resultAndUser.second;
           return Pair.create(qualtricsResult.surveyUrl(), user);
         })
-        .filter(surveyAndUser -> StringUtils.isPresent(surveyAndUser.first))
+        .filter(surveyAndUser -> ObjectUtils.isNotNull(surveyAndUser.first))
+        .filter(surveyAndUser -> StringExt.isPresent(surveyAndUser.first))
         .map(surveyAndUser -> {
           final String surveyUrl = surveyAndUser.first;
           final User user = surveyAndUser.second;
@@ -448,10 +432,6 @@ public interface DiscoveryViewModel {
         })
         .compose(bindToLifecycle())
         .subscribe(this.showQualtricsSurvey);
-    }
-
-    private Boolean isSameResponse(final @NonNull Response first, final @NonNull Response second) {
-      return first.code() == second.code() && first.message() == second.message();
     }
 
     private int currentDrawerMenuIcon(final @Nullable User user) {

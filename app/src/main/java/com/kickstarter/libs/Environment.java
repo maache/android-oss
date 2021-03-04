@@ -32,10 +32,9 @@ public abstract class Environment implements Parcelable {
   public abstract BooleanPreferenceType hasSeenAppRatingPreference();
   public abstract BooleanPreferenceType hasSeenGamesNewsletterPreference();
   public abstract InternalToolsType internalTools();
-  public abstract Koala koala();
   public abstract KSCurrency ksCurrency();
   public abstract KSString ksString();
-  public abstract Koala lake();
+  public abstract AnalyticEvents analytics();
   public abstract Logout logout();
   public abstract ExperimentsClientType optimizely();
   public abstract PlayServicesCapability playServicesCapability();
@@ -60,10 +59,9 @@ public abstract class Environment implements Parcelable {
     public abstract Builder hasSeenAppRatingPreference(BooleanPreferenceType __);
     public abstract Builder hasSeenGamesNewsletterPreference(BooleanPreferenceType __);
     public abstract Builder internalTools(InternalToolsType __);
-    public abstract Builder koala(Koala __);
     public abstract Builder ksCurrency(KSCurrency __);
     public abstract Builder ksString(KSString __);
-    public abstract Builder lake(Koala __);
+    public abstract Builder analytics(AnalyticEvents __);
     public abstract Builder logout(Logout __);
     public abstract Builder optimizely(ExperimentsClientType __);
     public abstract Builder playServicesCapability(PlayServicesCapability __);

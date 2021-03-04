@@ -13,6 +13,8 @@ import com.kickstarter.libs.KSCurrency
 import com.kickstarter.libs.NumberOptions
 import com.kickstarter.libs.models.Country
 import com.kickstarter.libs.models.OptimizelyExperiment
+import com.kickstarter.libs.utils.extensions.isErrored
+import com.kickstarter.libs.utils.extensions.trimAllWhitespace
 import com.kickstarter.models.Project
 import com.kickstarter.models.User
 import com.kickstarter.ui.views.CenterSpan
@@ -29,7 +31,7 @@ object ProjectViewUtils {
             R.color.button_pledge_manage
         } else if (!project.isLive || project.creator().id() == currentUser?.id()) {
             when {
-                BackingUtils.isErrored(project.backing()) -> R.color.button_pledge_error
+                project.backing()?.let { backing -> backing.isErrored() } == true -> R.color.button_pledge_error
                 else -> R.color.button_pledge_ended
             }
         } else {
@@ -54,7 +56,7 @@ object ProjectViewUtils {
             R.string.Manage
         } else if (project.isBacking && !project.isLive) {
             when {
-                BackingUtils.isErrored(project.backing()) -> R.string.Manage
+                project.backing()?.let { backing -> backing.isErrored() } == true -> R.string.Manage
                 else -> R.string.View_your_pledge
             }
         } else {
@@ -92,7 +94,7 @@ object ProjectViewUtils {
         val currencySymbolToDisplay = ksCurrency.getCurrencySymbol(country, true)
 
         var symbolAtStart = true
-        if (formattedCurrency.endsWith(StringUtils.trim(currencySymbolToDisplay))) {
+        if (formattedCurrency.endsWith(currencySymbolToDisplay.trimAllWhitespace())) {
             symbolAtStart = false
         }
 
@@ -147,7 +149,7 @@ object ProjectViewUtils {
         spannedCurrencySymbol.setSpan(RelativeSizeSpan(.6f), startOfSymbol, endOfSymbol, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         spannedCurrencySymbol.setSpan(CenterSpan(), startOfSymbol, endOfSymbol, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
-        val styledCurrency = if (formattedCurrency.startsWith(StringUtils.trim(currencySymbolToDisplay))) {
+        val styledCurrency = if (formattedCurrency.startsWith(currencySymbolToDisplay.trimAllWhitespace())) {
             TextUtils.concat(spannedCurrencySymbol, spannedDigits)
         } else {
             TextUtils.concat(spannedDigits, spannedCurrencySymbol)

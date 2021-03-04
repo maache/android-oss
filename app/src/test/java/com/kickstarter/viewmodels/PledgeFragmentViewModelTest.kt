@@ -11,8 +11,9 @@ import com.kickstarter.libs.MockSharedPreferences
 import com.kickstarter.libs.RefTag
 import com.kickstarter.libs.models.Country
 import com.kickstarter.libs.utils.DateTimeUtils
+import com.kickstarter.libs.utils.EventName
 import com.kickstarter.libs.utils.RefTagUtils
-import com.kickstarter.libs.utils.StringUtils
+import com.kickstarter.libs.utils.extensions.trimAllWhitespace
 import com.kickstarter.mock.MockCurrentConfig
 import com.kickstarter.mock.factories.*
 import com.kickstarter.mock.services.MockApiClient
@@ -32,6 +33,7 @@ import rx.observers.TestSubscriber
 import java.math.RoundingMode
 import java.net.CookieManager
 import java.util.*
+import kotlin.math.E
 
 class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
@@ -134,7 +136,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.vm.outputs.pledgeSummaryAmount().map { normalizeCurrency(it) }.subscribe(this.pledgeSummaryAmount)
         this.vm.outputs.pledgeSummaryIsGone().subscribe(this.pledgeSummaryIsGone)
         this.vm.outputs.pledgeTextColor().subscribe(this.pledgeTextColor)
-        this.vm.outputs.projectCurrencySymbol().map { StringUtils.trim(it.first.toString()) }.subscribe(this.projectCurrencySymbol)
+        this.vm.outputs.projectCurrencySymbol().map { it.first.toString().trimAllWhitespace() }.subscribe(this.projectCurrencySymbol)
         this.vm.outputs.rewardTitle().subscribe(this.rewardTitle)
         this.vm.outputs.selectedShippingRule().subscribe(this.selectedShippingRule)
         this.vm.outputs.shippingAmount().map { normalizeCurrency(it) }.subscribe(this.shippingAmount)
@@ -423,8 +425,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingRulesSectionIsGone.assertValue(false)
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
-        this.koalaTest.assertValue("Pledge Screen Viewed")
-        this.lakeTest.assertValue("Checkout Payment Page Viewed")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Checkout Payment Page Viewed")
     }
 
@@ -446,9 +447,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertValue("Pledge Screen Viewed")
-        this.lakeTest.assertValue("Checkout Payment Page Viewed")
-        this.experimentsTest.assertValue("Checkout Payment Page Viewed")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName)
+        this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
     @Test
@@ -473,8 +473,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertValue("Pledge Screen Viewed")
-        this.lakeTest.assertValue("Checkout Payment Page Viewed")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Checkout Payment Page Viewed")
     }
 
@@ -498,8 +497,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertValue("Pledge Screen Viewed")
-        this.lakeTest.assertValue("Checkout Payment Page Viewed")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValue("Checkout Payment Page Viewed")
     }
 
@@ -532,7 +530,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -561,7 +558,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -593,7 +589,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingRulesSectionIsGone.assertValues(true, true)
         this.totalDividerIsGone.assertValue(true)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -622,7 +617,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.totalDividerIsGone.assertValue(true)
         this.pledgeButtonIsEnabled.assertValue(true)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -670,7 +664,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertValue(false)
         this.totalDividerIsGone.assertValue(true)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -704,7 +697,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.bonusSummaryIsGone.assertValues(true, true)
         this.totalDividerIsGone.assertValue(true)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -733,7 +725,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -759,7 +750,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.shippingSummaryIsGone.assertNoValues()
         this.totalDividerIsGone.assertValue(false)
 
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
         this.experimentsTest.assertNoValues()
     }
@@ -927,7 +917,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeHint.assertValue("20")
         this.pledgeMaximumIsGone.assertValue(true)
         this.pledgeMinimum.assertValue(expectedCurrency(environment, project, 20.0))
-        this.pledgeTextColor.assertValues(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValues(R.color.kds_create_700)
         this.projectCurrencySymbol.assertValue("$")
         this.selectedShippingRule.assertValues(defaultRule, selectedRule)
         this.shippingAmount.assertValues(expectedCurrency(environment, project, 30.0),
@@ -956,7 +946,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
         this.pledgeMaximumIsGone.assertValue(true)
         this.pledgeMinimum.assertValue(expectedCurrency(environment, project, 20.0))
-        this.pledgeTextColor.assertValue(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValue(R.color.kds_create_700)
         this.projectCurrencySymbol.assertValue("MX$")
         this.shippingAmount.assertValue(expectedCurrency(environment, project, 30.0))
         this.totalAmount.assertValues(expectedCurrency(environment, project, 50.0))
@@ -970,7 +960,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeHint.assertValue("20")
         this.pledgeMaximumIsGone.assertValue(true)
         this.pledgeMinimum.assertValue(expectedCurrency(environment, project, 20.0))
-        this.pledgeTextColor.assertValue(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValue(R.color.kds_create_700)
         this.projectCurrencySymbol.assertValue("MX$")
         this.shippingAmount.assertValue(expectedCurrency(environment, project, 30.0))
         this.totalAmount.assertValues(expectedCurrency(environment, project, 50.0))
@@ -1009,7 +999,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeHint.assertValue("20")
         this.pledgeMaximumIsGone.assertValue(true)
         this.pledgeMinimum.assertValue(expectedCurrency(environment, project, 20.0))
-        this.pledgeTextColor.assertValue(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValue(R.color.kds_create_700)
         this.projectCurrencySymbol.assertValue("MX$")
         this.selectedShippingRule.assertValues(initialRule, selectedRule)
         this.shippingAmount.assertValues(expectedCurrency(environment, project, 30.0),
@@ -1073,8 +1063,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValue(true)
         this.vm.inputs.pledgeButtonClicked()
 
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -1277,8 +1267,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.newCardButtonClicked()
         this.showNewCardFragment.assertValue(project)
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Add New Card Button Clicked")
-        this.lakeTest.assertValue("Checkout Payment Page Viewed")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -1289,7 +1278,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.newCardButtonClicked()
         this.showNewCardFragment.assertValue(backedProject)
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
     }
 
@@ -1300,7 +1288,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.newCardButtonClicked()
         this.showNewCardFragment.assertValue(backedProject)
-        this.koalaTest.assertNoValues()
         this.lakeTest.assertNoValues()
     }
 
@@ -1337,7 +1324,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false, true)
         this.pledgeProgressIsGone.assertValues(false, true)
         this.showUpdatePaymentError.assertValueCount(1)
-        this.koalaTest.assertValues("Update Payment Method Button Clicked")
     }
 
     @Test
@@ -1373,8 +1359,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false, true)
         this.pledgeProgressIsGone.assertValues(false, true)
         this.showUpdatePaymentError.assertValueCount(1)
-        this.koalaTest.assertNoValues()
-        this.lakeTest.assertValues("Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
     }
 
     @Test
@@ -1403,7 +1389,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false)
         this.pledgeProgressIsGone.assertValues(false)
         this.showUpdatePaymentSuccess.assertValueCount(1)
-        this.koalaTest.assertValues("Update Payment Method Button Clicked")
     }
 
     @Test
@@ -1432,8 +1417,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false)
         this.pledgeProgressIsGone.assertValues(false)
         this.showUpdatePaymentSuccess.assertValueCount(1)
-        this.koalaTest.assertNoValues()
-        this.lakeTest.assertValues("Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
     }
 
     @Test
@@ -1478,7 +1463,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSCAFlow.assertValueCount(1)
         this.showUpdatePaymentError.assertNoValues()
         this.showUpdatePaymentSuccess.assertValueCount(1)
-        this.koalaTest.assertValues("Update Payment Method Button Clicked")
     }
 
     @Test
@@ -1523,7 +1507,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSCAFlow.assertValueCount(1)
         this.showUpdatePaymentError.assertValueCount(1)
         this.showUpdatePaymentSuccess.assertNoValues()
-        this.koalaTest.assertValues("Update Payment Method Button Clicked")
     }
 
     @Test
@@ -1568,7 +1551,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSCAFlow.assertValueCount(1)
         this.showUpdatePaymentError.assertValueCount(1)
         this.showUpdatePaymentSuccess.assertNoValues()
-        this.koalaTest.assertValues("Update Payment Method Button Clicked")
     }
 
     @Test
@@ -1621,7 +1603,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.pledgeButtonClicked()
 
         this.showUpdatePledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1654,7 +1635,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(false, false, true)
         this.pledgeProgressIsGone.assertValues(false, true)
         this.showUpdatePledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1674,7 +1654,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false, true)
         this.pledgeProgressIsGone.assertValues(false, true)
         this.showUpdatePledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1694,7 +1673,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false, true)
         this.pledgeProgressIsGone.assertValues(false, true)
         this.showUpdatePledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1742,7 +1720,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.pledgeButtonClicked()
 
         this.pledgeProgressIsGone.assertValues(false)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1767,7 +1744,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
 
         this.pledgeButtonIsEnabled.assertValues(false, false)
         this.pledgeProgressIsGone.assertValue(false)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1780,7 +1756,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false)
         this.pledgeProgressIsGone.assertValues(false)
         this.showUpdatePledgeSuccess.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     @Test
@@ -1792,7 +1767,6 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.pledgeButtonIsEnabled.assertValues(true, false)
         this.pledgeProgressIsGone.assertValues(false)
         this.showUpdatePledgeSuccess.assertValueCount(1)
-        this.koalaTest.assertValues("Update Pledge Button Clicked")
     }
 
     /* FIX TODO in https://kickstarter.atlassian.net/browse/NT-1462
@@ -1966,8 +1940,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSelectedCard.assertValue(Pair(0, CardState.SELECTED))
         this.showPledgeSuccess.assertValueCount(1)
         this.showPledgeError.assertNoValues()
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed",  EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -1987,8 +1961,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSelectedCard.assertValue(Pair(0, CardState.SELECTED))
         this.showPledgeSuccess.assertValueCount(1)
         this.showPledgeError.assertNoValues()
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -2012,8 +1986,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSelectedCard.assertValue(Pair(0, CardState.SELECTED))
         this.showPledgeSuccess.assertValueCount(1)
         this.showPledgeError.assertNoValues()
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName,"Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -2040,8 +2014,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showPledgeSuccess.assertNoValues()
         this.showPledgeError.assertValueCount(1)
         this.showSCAFlow.assertNoValues()
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -2068,8 +2042,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showPledgeSuccess.assertNoValues()
         this.showPledgeError.assertNoValues()
         this.showSCAFlow.assertValueCount(1)
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
 
         this.vm.inputs.stripeSetupResultSuccessful(StripeIntentResult.Outcome.SUCCEEDED)
@@ -2110,8 +2084,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSelectedCard.assertValue(Pair(0, CardState.SELECTED))
         this.showPledgeSuccess.assertNoValues()
         this.showPledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -2147,8 +2121,8 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.showSelectedCard.assertValue(Pair(0, CardState.SELECTED))
         this.showPledgeSuccess.assertNoValues()
         this.showPledgeError.assertValueCount(1)
-        this.koalaTest.assertValues("Pledge Screen Viewed", "Pledge Button Clicked")
-        this.lakeTest.assertValues("Checkout Payment Page Viewed", "Pledge Submit Button Clicked")
+        this.lakeTest.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
+        this.segmentTrack.assertValues("Checkout Payment Page Viewed", EventName.PAGE_VIEWED.eventName, "Pledge Submit Button Clicked", EventName.CTA_CLICKED.eventName)
         this.experimentsTest.assertValues("Checkout Payment Page Viewed")
     }
 
@@ -2529,7 +2503,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.continueButtonIsEnabled.assertNoValues()
         this.pledgeButtonIsEnabled.assertValue(true)
         this.pledgeHint.assertValue("20")
-        this.pledgeTextColor.assertValue(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValue(R.color.kds_create_700)
         this.shippingAmount.assertNoValues()
         this.totalAmount.assertValues(expectedCurrency(environment, project, 20.0))
         this.totalAndDeadline.assertValue(Pair(expectedCurrency(environment, project, 20.0), DateTimeUtils.longDate(this.deadline)))
@@ -2540,7 +2514,7 @@ class PledgeFragmentViewModelTest : KSRobolectricTestCase() {
         this.additionalPledgeAmountIsGone.assertValue(true)
         this.continueButtonIsEnabled.assertNoValues()
         this.pledgeButtonIsEnabled.assertValue(true)
-        this.pledgeTextColor.assertValue(R.color.ksr_green_500)
+        this.pledgeTextColor.assertValue(R.color.kds_create_700)
     }
 
     private fun apolloClientWithStoredCards(storedCards: List<StoredCard>): MockApolloClient {

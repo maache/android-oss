@@ -53,7 +53,6 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
 
         this.currentEmail.assertValue("rashad@test.com")
         this.sendVerificationIsHidden.assertValue(true)
-        this.koalaTest.assertValue("Viewed Change Email")
     }
 
     @Test
@@ -65,7 +64,6 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         }).build())
 
         this.currentEmail.assertNoValues()
-        this.koalaTest.assertValue("Viewed Change Email")
     }
 
     @Test
@@ -107,7 +105,7 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         this.sendVerificationIsHidden.assertValue(false)
 
         this.warningText.assertValue(R.string.Email_unverified)
-        this.warningTextColor.assertValue(R.color.ksr_dark_grey_400)
+        this.warningTextColor.assertValue(R.color.kds_support_400)
     }
 
     @Test
@@ -124,7 +122,7 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         this.sendVerificationIsHidden.assertValue(false)
 
         this.warningText.assertValue(R.string.We_ve_been_unable_to_send_email)
-        this.warningTextColor.assertValue(R.color.ksr_red_400)
+        this.warningTextColor.assertValue(R.color.kds_alert)
     }
 
     @Test
@@ -141,7 +139,7 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         this.sendVerificationIsHidden.assertValue(true)
 
         this.warningText.assertValue(null)
-        this.warningTextColor.assertValue(R.color.ksr_dark_grey_400)
+        this.warningTextColor.assertValue(R.color.kds_support_400)
         this.verificationButtonText.assertValue(R.string.Send_verfication_email)
     }
 
@@ -159,7 +157,7 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         this.sendVerificationIsHidden.assertValue(true)
 
         this.warningText.assertValue(null)
-        this.warningTextColor.assertValue(R.color.ksr_dark_grey_400)
+        this.warningTextColor.assertValue(R.color.kds_support_400)
         this.verificationButtonText.assertValue(R.string.Resend_verification_email)
     }
 
@@ -199,7 +197,6 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
 
         this.vm.inputs.sendVerificationEmail()
         this.success.assertValueCount(1)
-        this.koalaTest.assertValues("Viewed Change Email", "Resent Verification Email")
     }
 
     @Test
@@ -229,7 +226,5 @@ class ChangeEmailViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.updateEmailClicked()
         this.currentEmail.assertValues("some@email.com", "rashad@gmail.com")
         this.success.assertValueCount(1)
-        this.koalaTest.assertValues("Viewed Change Email", "Changed Email")
     }
-
 }

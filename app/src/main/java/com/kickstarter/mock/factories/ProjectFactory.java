@@ -67,6 +67,33 @@ public final class ProjectFactory {
       .build();
   }
 
+  public static @NonNull Project backedProjectWithError() {
+    final Project project = project();
+
+    final Reward reward = RewardFactory.reward();
+
+    final Backing backing = Backing.builder()
+            .amount(10.0f)
+            .backerId(IdFactory.id())
+            .cancelable(true)
+            .id(IdFactory.id())
+            .sequence(1)
+            .reward(reward)
+            .rewardId(reward.id())
+            .paymentSource(PaymentSourceFactory.Companion.visa())
+            .pledgedAt(DateTime.now())
+            .projectId(project.id())
+            .shippingAmount(0.0f)
+            .status(Backing.STATUS_ERRORED)
+            .build();
+
+    return project
+            .toBuilder()
+            .backing(backing)
+            .isBacking(true)
+            .build();
+  }
+
   public static @NonNull Project backedProject() {
     final Project project = project();
 
@@ -189,6 +216,14 @@ public final class ProjectFactory {
             .backing(backing)
             .isBacking(true)
             .build();
+  }
+
+  public static @NonNull Project projectWithAddOns() {
+    final Reward rwWithAddOn = RewardFactory.reward().toBuilder().hasAddons(true).build();
+    final Reward rw = RewardFactory.reward().toBuilder().hasAddons(false).build();
+    final Project pj = project().toBuilder().rewards(Arrays.asList(rw, rwWithAddOn)).build();
+
+    return pj;
   }
 
 

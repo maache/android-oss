@@ -9,6 +9,7 @@ import com.kickstarter.libs.Environment;
 import com.kickstarter.libs.MockCurrentUser;
 import com.kickstarter.libs.RefTag;
 import com.kickstarter.libs.preferences.MockBooleanPreference;
+import com.kickstarter.libs.utils.EventName;
 import com.kickstarter.mock.factories.CategoryFactory;
 import com.kickstarter.mock.factories.CheckoutDataFactory;
 import com.kickstarter.mock.factories.LocationFactory;
@@ -161,7 +162,6 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
 
     this.showGamesNewsletterDialogTest.assertValueCount(1);
     assertEquals(Arrays.asList(false, true), hasSeenGamesNewsletterPreference.values());
-    this.koalaTest.assertValueCount(0);
   }
 
   @Test
@@ -260,7 +260,6 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
     updateUserSettingsTest.assertValues(user.toBuilder().gamesNewsletter(true).build());
 
     this.showConfirmGamesNewsletterDialogTest.assertValueCount(0);
-    this.koalaTest.assertValues("Newsletter Subscribe");
   }
 
   @Test
@@ -282,7 +281,6 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
 
     this.vm.signupToGamesNewsletterClick();
     this.showConfirmGamesNewsletterDialogTest.assertValueCount(1);
-    this.koalaTest.assertValues("Newsletter Subscribe");
   }
 
   @Test
@@ -292,7 +290,6 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
 
     this.vm.inputs.categoryViewHolderClicked(category);
     this.startDiscoveryTest.assertValues(DiscoveryParams.builder().category(category).build());
-    this.koalaTest.assertValue("Checkout Finished Discover More");
   }
 
   @Test
@@ -302,7 +299,6 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
 
     this.vm.inputs.projectCardViewHolderClicked(project);
     this.startProjectTest.assertValues(Pair.create(project, RefTag.thanks()));
-    this.koalaTest.assertValue("Checkout Finished Discover Open Project");
   }
 
   @Test
@@ -320,7 +316,8 @@ public final class ThanksViewModelTest extends KSRobolectricTestCase {
             .putExtra(IntentKey.PROJECT, project);
     this.vm.intent(intent);
 
-    this.lakeTest.assertValue("Thanks Page Viewed");
+    this.lakeTest.assertValues("Thanks Page Viewed", EventName.PAGE_VIEWED.getEventName());
+    this.segmentTrack.assertValues("Thanks Page Viewed", EventName.PAGE_VIEWED.getEventName());
   }
 
   @Test

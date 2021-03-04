@@ -12,6 +12,8 @@ import com.kickstarter.R
 import com.kickstarter.libs.KSCurrency
 import com.kickstarter.libs.KSString
 import com.kickstarter.libs.models.Country
+import com.kickstarter.libs.utils.extensions.isBacked
+import com.kickstarter.libs.utils.extensions.trimAllWhitespace
 import com.kickstarter.models.Project
 import com.kickstarter.models.Reward
 import java.math.RoundingMode
@@ -23,13 +25,21 @@ object RewardViewUtils {
      */
     @StringRes
     fun pledgeButtonText(project: Project, reward: Reward): Int {
-        val hasAddOnsSelected = project.backing()?.addOns()?.isNotEmpty() ?: false
+        val backing = project.backing()
+        val hasAddOnsSelected = backing?.addOns()?.isNotEmpty() ?: false
 
-        return when {
-            BackingUtils.isBacked(project, reward) && !reward.hasAddons() -> R.string.Selected
-            !BackingUtils.isBacked(project, reward) && RewardUtils.isAvailable(project, reward) -> R.string.Select
-            BackingUtils.isBacked(project, reward) && reward.hasAddons() || hasAddOnsSelected -> R.string.Continue
-            else -> R.string.No_longer_available
+        if((backing == null || !backing.isBacked(reward)) && RewardUtils.isAvailable(project, reward)) {
+            return R.string.Select
+        }
+
+        return if(backing != null && backing.isBacked(reward)) {
+            when {
+                !reward.hasAddons() -> R.string.Selected
+                reward.hasAddons() || hasAddOnsSelected -> R.string.Continue
+                else -> R.string.No_longer_available
+            }
+        } else {
+            R.string.No_longer_available
         }
     }
 
@@ -62,7 +72,7 @@ object RewardViewUtils {
         val country = Country.findByCurrencyCode(project.currency()) ?: return spannableString
 
         val currencyNeedsCode = ksCurrency.currencyNeedsCode(country, true)
-        val currencySymbolToDisplay = StringUtils.trim(ksCurrency.getCurrencySymbol(country, true))
+        val currencySymbolToDisplay = ksCurrency.getCurrencySymbol(country, true).trimAllWhitespace()
 
         if (currencyNeedsCode) {
             val startOfSymbol = formattedCurrency.indexOf(currencySymbolToDisplay)
@@ -83,7 +93,7 @@ object RewardViewUtils {
         val numberGreenCharacters = quantity.toString().length + symbol.length
         val spannable = SpannableString(quantity.toString() + symbol + title)
         spannable.setSpan(
-                ForegroundColorSpan(context.getColor(R.color.ksr_green_500)),
+                ForegroundColorSpan(context.getColor(R.color.kds_create_700)),
                 0, numberGreenCharacters,
                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         return spannable
