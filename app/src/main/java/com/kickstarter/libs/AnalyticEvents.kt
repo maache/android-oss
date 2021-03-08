@@ -679,6 +679,8 @@ class AnalyticEvents(trackingClients: List<TrackingClientType?>) {
         client.track(PROJECT_PAGE_VIEWED, props)
     }
 
+
+
     /**
      * Sends data to the client when the projects screen is loaded.
      *

@@ -2,6 +2,7 @@ package com.kickstarter.viewmodels
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.util.Log
 import android.util.Pair
 import androidx.annotation.NonNull
 import com.kickstarter.R
@@ -604,8 +605,8 @@ interface ProjectViewModel {
                     .compose<Pair<ProjectData, Backing>>(combineLatestPair(backing))
                     .map {
                         pD -> pD.first.project().backing()?.backedReward(pD.first.project())?.let {
-                            Pair(pD.first.toBuilder().backing(pD.second).build(), it)
-                        }
+                        Pair(pD.first.toBuilder().backing(pD.second).build(), it)
+                    }
                     }
 
             projectDataAndBackedReward
@@ -655,11 +656,11 @@ interface ProjectViewModel {
 
             Observable.combineLatest(currentProjectData, this.currentUser.observable())
             { data, user ->
-                    val experimentData = ExperimentData(user, data.refTagFromIntent(), data.refTagFromCookie())
-                    ProjectViewUtils.pledgeActionButtonText(
-                            data.project(),
-                            user,
-                            this.optimizely.variant(OptimizelyExperiment.Key.PLEDGE_CTA_COPY, experimentData))
+                val experimentData = ExperimentData(user, data.refTagFromIntent(), data.refTagFromCookie())
+                ProjectViewUtils.pledgeActionButtonText(
+                        data.project(),
+                        user,
+                        this.optimizely.variant(OptimizelyExperiment.Key.PLEDGE_CTA_COPY, experimentData))
             }
                     .distinctUntilChanged()
                     .compose(bindToLifecycle())
@@ -750,6 +751,15 @@ interface ProjectViewModel {
                     .subscribe {
                         this.lake.trackProjectPagePledgeButtonClicked(storeCurrentCookieRefTag(it.first), it.second)
                         this.lake.trackPledgeInitiateCTA(it.first)
+                    }
+
+            fullProjectDataAndPledgeFlowContext
+                    .compose<Pair<ProjectData, PledgeFlowContext?>>(takeWhen(this.nativeProjectActionButtonClicked))
+                    .filter { it.first.project().isLive && it.first.project().isBacking }
+                    .compose(bindToLifecycle())
+                    .subscribe {
+
+                        Log.e("HELLO", "MANAGE PLEDGE")
                     }
 
             fullProjectDataAndPledgeFlowContext
@@ -846,6 +856,7 @@ interface ProjectViewModel {
                 ProjectUtils.userIsCreator(project, currentUser) -> null
                 project.isLive && !project.isBacking -> PledgeFlowContext.NEW_PLEDGE
                 !project.isLive && project.backing()?.isErrored() ?: false -> PledgeFlowContext.FIX_ERRORED_PLEDGE
+                project.isLive && project.isBacking -> PledgeFlowContext.CHANGE_REWARD
                 else -> null
             }
         }
